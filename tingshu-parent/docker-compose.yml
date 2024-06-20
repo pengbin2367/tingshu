@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  ts-mysql:
+    image: mysql:8.0.37
+    container_name: ts-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - /docker/tingshu/mysql/:/var/lib/mysql
+  ts-rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: ts-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  ts-redis:
+    image: redis:7.0.15
+    container_name: ts-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - /docker/tingshu/redis/redis.conf:/etc/redis/redis.conf
+      - /docker/tingshu/redis/data:/data
+    command: redis-server /etc/redis/redis.conf
+  ts-nacos:
+    image: nacos/nacos-server:v2.1.1
+    container_name: ts-nacos
+    environment:
+      - MODE=standalone
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+      - "9849:9849"
+  ts-sentinel-dashboard:
+    image: bladex/sentinel-dashboard:latest
+    container_name: ts-sentinel-dashboard
+    ports:
+      - "8858:8858"
+
+#  ts-elasticsearch:
+#    image: elasticsearch:8.5.0
+#    container_name: ts-elasticsearch
+#    environment:
+#      - "discovery.type=single-node"
+#      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+#    ports:
+#      - "9200:9200"
+#      - "9300:9300"
+#    volumes:
+#      - /docker/tingshu/es/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+#      - /docker/tingshu/es/data:/usr/share/elasticsearch/data
+#      - /docker/tingshu/es/plugins:/usr/share/elasticsearch/plugins
+#
+#  ts-logstash:
+#    image: logstash:8.5.0
+#    container_name: ts-logstash
+#    environment:
+#      - "ES_JAVA_OPTS=-Duser.timezone=Asia/Shanghai"
+#    ports:
+#      - "5044:5044"
+#      - "9600:9600"
+#    volumes:
+#      - /mnt/docker/elk/logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+#      - /mnt/docker/elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+#    privileged: true
+#    mem_limit: 1000M
+#
+#  ts-kibana:
+#    image: kibana:8.5.0
+#    container_name: ts-kibana
+#    ports:
+#      - "5601:5601"
+#    volumes:
+#      - /opt/kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml
+
+  ts-minio:
+    image: minio/minio
+    container_name: ts-minio
+    environment:
+      - "MINIO_ROOT_USER=admin"
+      - "MINIO_ROOT_PASSWORD=admin123456"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - /docker/tingshu/minio/data:/data
+      - /docker/tingshu/minio/config:/root/.minio
+    command: server /data --console-address ":9001"
