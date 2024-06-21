@@ -1,11 +1,29 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
-"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
-
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.atguigu.tingshu.album.mapper.BaseAttributeMapper">
 
-
+    <resultMap id="baseAttributeMap" type="com.atguigu.tingshu.model.album.BaseAttribute" autoMapping="true">
+        <id column="id" property="id" />
+        <collection property="attributeValueList" ofType="com.atguigu.tingshu.model.album.BaseAttributeValue" autoMapping="true">
+            <id column="attribute_value_id" property="id" />
+        </collection>
+    </resultMap>
+    
+    <select id="selectBaseAttributeBycategory1Id" resultMap="baseAttributeMap">
+        select
+            t1.id,
+            t1.attribute_name,
+            t1.category1_id,
+            t2.id as attribute_value_id,
+            t2.attribute_id,
+            t2.value_name
+        from tingshu_album.base_attribute t1
+        inner join tingshu_album.base_attribute_value t2
+        on t1.id = t2.attribute_id
+        where category1_id = #{category1Id}
+    </select>
 </mapper>
 
