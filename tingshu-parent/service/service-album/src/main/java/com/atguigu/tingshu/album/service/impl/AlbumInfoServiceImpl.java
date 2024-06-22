@@ -131,4 +131,9 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
         if (delete < 0) throw new GuiguException(201, "删除专辑标签失败");
         saveAlbumAttributeValue(albumInfoVo.getAlbumAttributeValueVoList(), albumId);
     }
+
+    @Override
+    public List<AlbumInfo> findUserAllAlbumList() {
+        return list(new LambdaQueryWrapper<AlbumInfo>().eq(AlbumInfo::getUserId, 1L));
+    }
 }
