@@ -35,5 +35,16 @@ public class AlbumInfoApiController {
         albumInfoService.removeAlbumInfo(albumId);
         return Result.ok();
     }
+
+    @GetMapping("/getAlbumInfo/{albumId}")
+    public Result getAlbumInfo(@PathVariable("albumId") Long albumId) {
+        return Result.ok(albumInfoService.getAlbumInfoById(albumId));
+    }
+
+    @PutMapping("/updateAlbumInfo/{albumId}")
+    public Result updateAlbumInfo(@PathVariable("albumId") Long albumId, @RequestBody AlbumInfoVo albumInfoVo) {
+        albumInfoService.updateAlbumInfo(albumId, albumInfoVo);
+        return Result.ok();
+    }
 }
 
