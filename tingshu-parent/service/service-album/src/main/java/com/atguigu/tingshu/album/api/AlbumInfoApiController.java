@@ -29,5 +29,11 @@ public class AlbumInfoApiController {
     public Result<Page<AlbumListVo>> findUserAlbumPage(@PathVariable("page") Integer page, @PathVariable("size") Integer size, @RequestBody AlbumInfoQuery albumInfoQuery) {
         return Result.ok(albumInfoService.findUserAlbumPage(page, size, albumInfoQuery));
     }
+
+    @DeleteMapping("/removeAlbumInfo/{albumId}")
+    public Result removeAlbumInfo(@PathVariable("albumId") Long albumId) {
+        albumInfoService.removeAlbumInfo(albumId);
+        return Result.ok();
+    }
 }
 

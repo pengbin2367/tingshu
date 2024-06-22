@@ -13,6 +13,7 @@ import com.atguigu.tingshu.query.album.AlbumInfoQuery;
 import com.atguigu.tingshu.vo.album.AlbumAttributeValueVo;
 import com.atguigu.tingshu.vo.album.AlbumInfoVo;
 import com.atguigu.tingshu.vo.album.AlbumListVo;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
@@ -90,5 +91,20 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
     @Override
     public Page<AlbumListVo> findUserAlbumPage(Integer page, Integer size, AlbumInfoQuery albumInfoQuery) {
         return albumInfoMapper.selectAlbumListPage(new Page<AlbumListVo>(page, size), albumInfoQuery);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void removeAlbumInfo(Long albumId) {
+        boolean remove = remove(
+                new LambdaQueryWrapper<AlbumInfo>()
+                        .eq(AlbumInfo::getId, albumId)
+                        .eq(AlbumInfo::getUserId, 10086L)
+        );
+        if (!remove) throw new GuiguException(201, "删除专辑信息失败");
+        int delete = albumAttributeValueMapper.delete(new LambdaQueryWrapper<AlbumAttributeValue>().eq(AlbumAttributeValue::getAlbumId, albumId));
+        if (delete <= 0) throw new GuiguException(201, "删除专辑标签失败");
+        delete = albumStatMapper.delete(new LambdaQueryWrapper<AlbumStat>().eq(AlbumStat::getAlbumId, albumId));
+        if (delete <= 0) throw new GuiguException(201, "删除专辑统计信息失败");
     }
 }
