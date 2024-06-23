@@ -1,10 +1,31 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
-"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
-
-
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.atguigu.tingshu.album.mapper.TrackInfoMapper">
-
+    <select id="selectUserTrackPage" resultType="com.atguigu.tingshu.vo.album.TrackListVo">
+        select
+        t1.album_id as albumId,
+        t1.id as trackId,
+        t1.track_title as trackTitle,
+        t1.cover_url as coverUrl,
+        t1.media_duration as mediaDuration,
+        t1.status,
+        max(if(t2.stat_type = '0701', t2.stat_num, 0)) as playStatNum,
+        max(if(t2.stat_type = '0702', t2.stat_num, 0)) as subscribeStatNum,
+        max(if(t2.stat_type = '0703', t2.stat_num, 0)) as buyStatNum,
+        max(if(t2.stat_type = '0704', t2.stat_num, 0)) as albumCommentStatNum
+        from tingshu_album.track_info t1
+        inner join tingshu_album.track_stat t2
+        on t1.id = t2.track_id
+        <where>
+            <if test="vo.trackTitle != null and vo.trackTitle != ''">and t1.track_title = concat('%', #{vo.trackTitle}, '%')</if>
+            <if test="vo.status != null and vo.status != ''">and t1.status = #{vo.status}</if>
+            <if test="vo.userId != null">and t1.user_id = #{vo.userId}</if>
+            and t1.is_deleted = 0 and t2.is_deleted = 0
+        </where>
+        group by t1.id
+        order by t1.id desc
+    </select>
 </mapper>
 

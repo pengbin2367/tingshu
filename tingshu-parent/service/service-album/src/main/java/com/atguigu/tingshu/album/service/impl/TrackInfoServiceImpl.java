@@ -11,7 +11,11 @@ import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.util.UploadFileUtil;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.model.album.TrackStat;
+import com.atguigu.tingshu.query.album.TrackInfoQuery;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
+import com.atguigu.tingshu.vo.album.TrackListVo;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qcloud.vod.VodUploadClient;
 import com.qcloud.vod.model.VodUploadRequest;
@@ -109,5 +113,10 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 		trackStat.setId(null);
 		trackStat.setStatType(SystemConstant.TRACK_STAT_COMMENT);
 		trackStatMapper.insert(trackStat);
+	}
+
+	@Override
+	public IPage<TrackListVo> findUserTrackPage(Long page, Long size, TrackInfoQuery trackInfoQuery) {
+		return trackInfoMapper.selectUserTrackPage(new Page<>(page, size), trackInfoQuery);
 	}
 }
