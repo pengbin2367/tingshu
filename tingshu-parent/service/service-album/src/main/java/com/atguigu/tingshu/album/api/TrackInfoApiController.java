@@ -44,5 +44,11 @@ public class TrackInfoApiController {
 														@RequestBody TrackInfoQuery trackInfoQuery){
 		return Result.ok(trackInfoService.findUserTrackPage(page, size, trackInfoQuery));
 	}
+
+	@DeleteMapping("removeTrackInfo/{id}")
+	public Result removeTrackInfo(@PathVariable("id") Long id) {
+		trackInfoService.removeTrackInfo(id);
+		return Result.ok();
+	}
 }
 

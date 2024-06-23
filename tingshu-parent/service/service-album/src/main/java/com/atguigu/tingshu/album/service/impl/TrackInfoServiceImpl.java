@@ -14,6 +14,7 @@ import com.atguigu.tingshu.model.album.TrackStat;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -118,5 +119,18 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 	@Override
 	public IPage<TrackListVo> findUserTrackPage(Long page, Long size, TrackInfoQuery trackInfoQuery) {
 		return trackInfoMapper.selectUserTrackPage(new Page<>(page, size), trackInfoQuery);
+	}
+
+	@Transactional(rollbackFor = Exception.class)
+	@Override
+	public void removeTrackInfo(Long id) {
+		TrackInfo trackInfo = getById(id);
+		Long albumId = trackInfo.getAlbumId();
+		// TODO 用户系统完成后，改为真实用户
+		boolean remove = remove(new LambdaQueryWrapper<TrackInfo>().eq(TrackInfo::getId, id).eq(TrackInfo::getUserId, 10086L));
+		if (!remove) throw new GuiguException(201, "删除声音信息失败");
+		int delete = trackStatMapper.delete(new LambdaQueryWrapper<TrackStat>().eq(TrackStat::getTrackId, id));
+		if (delete <= 0) throw new GuiguException(201, "删除声音统计信息失败");
+		albumInfoMapper.updateAlbumTrackCount(albumId, -1);
 	}
 }
