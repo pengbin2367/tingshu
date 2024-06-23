@@ -8,6 +8,7 @@ import com.atguigu.tingshu.album.mapper.TrackStatMapper;
 import com.atguigu.tingshu.album.service.TrackInfoService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.common.result.ResultCodeEnum;
 import com.atguigu.tingshu.common.util.UploadFileUtil;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.model.album.TrackStat;
@@ -23,9 +24,7 @@ import com.qcloud.vod.model.VodUploadRequest;
 import com.qcloud.vod.model.VodUploadResponse;
 import com.tencentcloudapi.common.Credential;
 import com.tencentcloudapi.vod.v20180717.VodClient;
-import com.tencentcloudapi.vod.v20180717.models.DescribeMediaInfosRequest;
-import com.tencentcloudapi.vod.v20180717.models.DescribeMediaInfosResponse;
-import com.tencentcloudapi.vod.v20180717.models.MediaInfo;
+import com.tencentcloudapi.vod.v20180717.models.*;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -132,5 +131,44 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 		int delete = trackStatMapper.delete(new LambdaQueryWrapper<TrackStat>().eq(TrackStat::getTrackId, id));
 		if (delete <= 0) throw new GuiguException(201, "删除声音统计信息失败");
 		albumInfoMapper.updateAlbumTrackCount(albumId, -1);
+	}
+
+	@Transactional(rollbackFor = Exception.class)
+	@Override
+	public void updateTrackInfo(Long id, TrackInfoVo trackInfoVo) {
+		//	获取到声音对象
+		TrackInfo trackInfo = this.getById(id);
+		//  获取传递的fileId
+		String mediaFileId = trackInfo.getMediaFileId();
+		//	进行属性拷贝
+		BeanUtils.copyProperties(trackInfoVo, trackInfo);
+		//	获取声音信息 页面传递的fileId 与 数据库的 fileId 不相等就修改
+		if (!trackInfoVo.getMediaFileId().equals(mediaFileId)) {
+			deleteMediaFileId(trackInfo.getMediaFileId());
+			//	说明已经修改过了.
+			DescribeMediaInfosResponse response = getVodFileInfo(trackInfoVo.getMediaFileId());
+			//	判断对象不为空.
+			if (null == response || response.getMediaInfoSet() == null){
+				//	抛出异常
+				throw new GuiguException(ResultCodeEnum.VOD_FILE_ID_ERROR);
+			}
+			MediaInfo mediaInfo = response.getMediaInfoSet()[0];
+			trackInfo.setMediaFileId(trackInfoVo.getMediaFileId());
+			trackInfo.setMediaUrl(mediaInfo.getBasicInfo().getMediaUrl());
+			trackInfo.setMediaType(mediaInfo.getBasicInfo().getType());
+			trackInfo.setMediaDuration(BigDecimal.valueOf(mediaInfo.getMetaData().getDuration()));
+			trackInfo.setMediaSize(mediaInfo.getMetaData().getSize());
+		}
+		//	修改数据
+		this.updateById(trackInfo);
+	}
+
+	@SneakyThrows
+    private void deleteMediaFileId(String mediaFileId) {
+		Credential credential = new Credential(vodConstantProperties.getSecretId(), vodConstantProperties.getSecretKey());
+		VodClient vodClient = new VodClient(credential, vodConstantProperties.getRegion());
+		DeleteMediaRequest request = new DeleteMediaRequest();
+		request.setFileId(mediaFileId);
+		vodClient.DeleteMedia(request);
 	}
 }

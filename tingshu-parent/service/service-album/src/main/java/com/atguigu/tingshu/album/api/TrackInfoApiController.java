@@ -3,6 +3,7 @@ package com.atguigu.tingshu.album.api;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.service.TrackInfoService;
 import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
@@ -45,9 +46,20 @@ public class TrackInfoApiController {
 		return Result.ok(trackInfoService.findUserTrackPage(page, size, trackInfoQuery));
 	}
 
-	@DeleteMapping("removeTrackInfo/{id}")
+	@DeleteMapping("/removeTrackInfo/{id}")
 	public Result removeTrackInfo(@PathVariable("id") Long id) {
 		trackInfoService.removeTrackInfo(id);
+		return Result.ok();
+	}
+
+	@GetMapping("/getTrackInfo/{id}")
+	public Result<TrackInfo> getTrackInfo(@PathVariable Long id) {
+		return Result.ok(trackInfoService.getById(id));
+	}
+
+	@PutMapping("/updateTrackInfo/{id}")
+	public Result updateById(@PathVariable Long id, @RequestBody @Validated TrackInfoVo trackInfoVo) {
+		trackInfoService.updateTrackInfo(id, trackInfoVo);
 		return Result.ok();
 	}
 }
