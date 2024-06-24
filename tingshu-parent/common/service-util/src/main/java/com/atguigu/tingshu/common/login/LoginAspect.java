@@ -5,6 +5,7 @@ import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.result.ResultCodeEnum;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.common.util.IpUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
@@ -12,6 +13,8 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.jwt.crypto.sign.RsaVerifier;
@@ -21,10 +24,14 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Aspect
 public class LoginAspect {
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @SneakyThrows
     @Around(value = "@annotation(com.atguigu.tingshu.common.login.GuiguLogin)")
@@ -60,6 +67,12 @@ public class LoginAspect {
 
         // 校验token
         Jwt jwt = JwtHelper.decodeAndVerify(token, new RsaVerifier(SystemConstant.PUBLIC_KEY));
+        // 判断盗用问题：ip/设备绑定
+        String ipAddress = IpUtil.getIpAddress(request);
+        Object o = redisTemplate.opsForValue().get("User_Login_Info_" + ipAddress);
+        if (o == null || !o.equals(token)) {
+            throw new GuiguException(ResultCodeEnum.LOGIN_AUTH);
+        }
         // 获取载荷
         String claims = jwt.getClaims();
         // 反序列化
@@ -73,6 +86,15 @@ public class LoginAspect {
 
         // 存储到本地线程
         AuthContextHolder.setUserId(Long.valueOf(userId));
+
+        // 令牌到期时间
+        Long eTimes = Long.valueOf(map.get("e_times"));
+        Long time = eTimes - System.currentTimeMillis();
+        // 剩余有效期不足五分钟，延长token过期时间
+        if (time <= 300000) {
+            redisTemplate.expire("User_Login_Info_" + ipAddress, 30, TimeUnit.MINUTES);
+        }
+
         Object result = point.proceed(args);
         AuthContextHolder.removeUserId();
         return result;
