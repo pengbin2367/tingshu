@@ -14,9 +14,12 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.jwt.Jwt;
+import org.springframework.security.jwt.JwtHelper;
+import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import java.security.interfaces.RSAPrivateKey;
 
 @Slf4j
 @Service
@@ -28,6 +31,9 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 
 	@Autowired
 	private WxMaService wxMaService;
+
+	@Autowired
+	private RSAPrivateKey rsaPrivateKey;
 
 	@SneakyThrows
     @Override
@@ -51,9 +57,13 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 			// TODO 初始化一个账户
 		}
 		// 注册过，获取这个用户的信息，生成一个token返回
-		// TODO 生成一个token
+		// 生成一个token
+		JSONObject jwtInfo = new JSONObject();
+		jwtInfo.put("userId", userInfo.getId());
+		jwtInfo.put("role", userInfo.getIsVip());
+		Jwt jwt = JwtHelper.encode(jwtInfo.toJSONString(), new RsaSigner(rsaPrivateKey));
 		JSONObject result = new JSONObject();
-		result.put("token", UUID.randomUUID().toString());
+		result.put("token", jwt.getEncoded());
 		return result;
 	}
 }

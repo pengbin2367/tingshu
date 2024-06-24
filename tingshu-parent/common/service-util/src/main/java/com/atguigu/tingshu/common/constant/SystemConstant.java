@@ -71,4 +71,9 @@ public class SystemConstant {
     //订单减免类型 1405-专辑折扣 1406-VIP服务折
     public static final String  ORDER_DERATE_ALBUM_DISCOUNT="1405";  // 专辑折扣
     public static final String  ORDER_DERATE_VIP_SERVICE_DISCOUNT="1406";  // VIP服务折扣
+
+    // 公钥
+    // keytool -genkeypair -alias tingshu -keyalg RSA -keypass tingshu -keystore tingshu.jks -storepass tingshu -validity 365
+    // keytool -list -rfc --keystore tingshu.jks | openssl x509 -inform pem -pubkey
+    public static final String PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArEC8k1FLDEzsRhuTjS3YFXnRDpY+jwijm7aCkNx2bVhkyhUjqi4WeEsGLItsdFz+Asqy5PtpSBR1w/tQkgrCyVg6MZ8+JcyOrVX2pA14crSLY6l7LzAvyu3U4I24MO8fPOLufErMolaxO3Appju+Cxoo3B0XaqH6cmKKy2bT0yCpoBmVbvZ577M1Jtrr9n0n62CZ+r5BmOvXFl9QZW0ccIMjn9tfDDYrJQ0cOH3CqJfZrsedfc0YyHtmVRM5Nh2VjbOQzzenogHuvgYsU+ZEL8CMt3Om8LQsqQsRRj5GX3oCFI1Woa5X+7XpXSd/JGyE3odbeZ+D9FHD4v6zl2JiBQIDAQAB-----END PUBLIC KEY-----";
 }
