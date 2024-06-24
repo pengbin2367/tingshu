@@ -7,6 +7,7 @@ public class AuthContextHolder {
 
     private static ThreadLocal<Long> userId = new ThreadLocal<Long>();
     private static ThreadLocal<String> username = new ThreadLocal<String>();
+    private static ThreadLocal<String> role = new ThreadLocal<>();
 
     public static void setUserId(Long _userId) {
         userId.set(_userId);
@@ -32,4 +33,15 @@ public class AuthContextHolder {
         username.remove();
     }
 
+    public static void setRole(String _role) {
+        role.set(_role);
+    }
+
+    public static String getRole() {
+        return role.get();
+    }
+
+    public static void removeRole() {
+        role.remove();
+    }
 }

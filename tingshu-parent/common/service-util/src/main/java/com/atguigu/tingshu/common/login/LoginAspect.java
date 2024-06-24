@@ -65,14 +65,16 @@ public class LoginAspect {
         // 反序列化
         Map<String, String> map = JSONObject.parseObject(claims, Map.class);
         String userId = map.get("userId");
-        String role = map.get("role");
+        int role = Integer.parseInt(map.get("role"));
+        int roleInfo = guiguLogin.role();
+        if (role < roleInfo) {
+            throw new GuiguException(ResultCodeEnum.PERMISSION);
+        }
 
         // 存储到本地线程
         AuthContextHolder.setUserId(Long.valueOf(userId));
-        AuthContextHolder.setRole(role);
         Object result = point.proceed(args);
         AuthContextHolder.removeUserId();
-        AuthContextHolder.removeRole();
         return result;
     }
 }

@@ -8,4 +8,7 @@ import java.lang.annotation.*;
 public @interface GuiguLogin {
 
     boolean isLogin() default true;
+
+    // 访问权限：0-普通会员 1-Vip会员 2-超级管理员
+    int role() default 0;
 }
