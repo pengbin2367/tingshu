@@ -9,4 +9,6 @@ public interface UserInfoService extends IService<UserInfo> {
     Object wxLogin(String code);
 
     UserInfoVo getUserInfoVoByUserId(Long userId);
+
+    void updateUser(UserInfoVo userInfoVo);
 }

@@ -5,6 +5,7 @@ import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.result.ResultCodeEnum;
+import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.common.util.IpUtil;
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.user.mapper.UserInfoMapper;
@@ -94,5 +95,14 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 		UserInfoVo userInfoVo = new UserInfoVo();
 		BeanUtils.copyProperties(userInfo,userInfoVo);
 		return userInfoVo;
+	}
+
+	@Override
+	public void updateUser(UserInfoVo userInfoVo) {
+		Long userId = AuthContextHolder.getUserId();
+		UserInfo userInfo = new UserInfo();
+		BeanUtils.copyProperties(userInfoVo, userInfo);
+		userInfo.setId(userId);
+		updateById(userInfo);
 	}
 }

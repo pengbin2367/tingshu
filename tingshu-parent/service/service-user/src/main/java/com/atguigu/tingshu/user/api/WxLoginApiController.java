@@ -3,14 +3,13 @@ package com.atguigu.tingshu.user.api;
 import com.atguigu.tingshu.common.login.GuiguLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.user.service.UserInfoService;
+import com.atguigu.tingshu.vo.user.UserInfoVo;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "微信授权登录接口")
 @RestController
@@ -27,9 +26,16 @@ public class WxLoginApiController {
     }
 
     @GuiguLogin
-    @GetMapping("getUserInfo")
+    @GetMapping("/getUserInfo")
     public Result getUserInfo(){
         Long userId = AuthContextHolder.getUserId();
         return Result.ok(userInfoService.getUserInfoVoByUserId(userId));
+    }
+
+    @GuiguLogin
+    @PostMapping("/updateUser")
+    public Result updateUser(@RequestBody UserInfoVo userInfoVo){
+        userInfoService.updateUser(userInfoVo);
+        return Result.ok();
     }
 }
