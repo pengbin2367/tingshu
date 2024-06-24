@@ -1,6 +1,8 @@
 package com.atguigu.tingshu.user.api;
 
+import com.atguigu.tingshu.common.login.GuiguLogin;
 import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.user.service.UserInfoService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -22,5 +24,12 @@ public class WxLoginApiController {
     @GetMapping("/wxLogin/{code}")
     public Result wxLogin(@PathVariable("code") String code) {
         return Result.ok(userInfoService.wxLogin(code));
+    }
+
+    @GuiguLogin
+    @GetMapping("getUserInfo")
+    public Result getUserInfo(){
+        Long userId = AuthContextHolder.getUserId();
+        return Result.ok(userInfoService.getUserInfoVoByUserId(userId));
     }
 }

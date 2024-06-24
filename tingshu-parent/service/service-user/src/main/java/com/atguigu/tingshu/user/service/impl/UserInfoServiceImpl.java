@@ -9,11 +9,13 @@ import com.atguigu.tingshu.common.util.IpUtil;
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.user.mapper.UserInfoMapper;
 import com.atguigu.tingshu.user.service.UserInfoService;
+import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.jwt.Jwt;
@@ -84,5 +86,13 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 			result.put("token", token);
 		}
 		return result;
+	}
+
+	@Override
+	public UserInfoVo getUserInfoVoByUserId(Long userId) {
+		UserInfo userInfo = this.getById(userId);
+		UserInfoVo userInfoVo = new UserInfoVo();
+		BeanUtils.copyProperties(userInfo,userInfoVo);
+		return userInfoVo;
 	}
 }
