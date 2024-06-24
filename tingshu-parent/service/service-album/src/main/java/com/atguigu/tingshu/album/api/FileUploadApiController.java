@@ -2,6 +2,7 @@ package com.atguigu.tingshu.album.api;
 
 import com.atguigu.tingshu.album.config.MinioConstantProperties;
 import com.atguigu.tingshu.album.util.FileUtil;
+import com.atguigu.tingshu.common.login.GuiguLogin;
 import com.atguigu.tingshu.common.result.Result;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.SneakyThrows;
@@ -21,6 +22,7 @@ public class FileUploadApiController {
     @Autowired
     private FileUtil fileUtil;
 
+    @GuiguLogin
     @SneakyThrows
     @PostMapping("/fileUpload")
     public Result fileUpload(MultipartFile file) {
