@@ -59,8 +59,8 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 		// 注册过，获取这个用户的信息，生成一个token返回
 		// 生成一个token
 		JSONObject jwtInfo = new JSONObject();
-		jwtInfo.put("userId", userInfo.getId());
-		jwtInfo.put("role", userInfo.getIsVip());
+		jwtInfo.put("userId", userInfo.getId().toString());
+		jwtInfo.put("role", userInfo.getIsVip().toString());
 		Jwt jwt = JwtHelper.encode(jwtInfo.toJSONString(), new RsaSigner(rsaPrivateKey));
 		JSONObject result = new JSONObject();
 		result.put("token", jwt.getEncoded());
