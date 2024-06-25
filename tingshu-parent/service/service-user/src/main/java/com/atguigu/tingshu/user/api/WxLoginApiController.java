@@ -3,7 +3,6 @@ package com.atguigu.tingshu.user.api;
 import com.atguigu.tingshu.common.login.GuiguLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
-import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.user.service.UserInfoService;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,5 +36,11 @@ public class WxLoginApiController {
     public Result updateUser(@RequestBody UserInfoVo userInfoVo){
         userInfoService.updateUser(userInfoVo);
         return Result.ok();
+    }
+
+    @GuiguLogin
+    @GetMapping("/getNewToken")
+    public Result<String> getNewToken() {
+        return Result.ok(userInfoService.getNewToken());
     }
 }

@@ -24,7 +24,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @Component
 @Aspect
@@ -89,10 +88,12 @@ public class LoginAspect {
 
         // 令牌到期时间
         Long eTimes = Long.valueOf(map.get("e_times"));
-        Long time = eTimes - System.currentTimeMillis();
-        // 剩余有效期不足五分钟，延长token过期时间
-        if (time <= 300000) {
-            redisTemplate.expire("User_Login_Info_" + ipAddress, 30, TimeUnit.MINUTES);
+        Long time = System.currentTimeMillis() - eTimes;
+        // 剩余有效期大于12小时，延长token过期时间
+        if (time >= 3600000 * 12) {
+            // redisTemplate.expire("User_Login_Info_" + ipAddress, 30, TimeUnit.MINUTES);
+            // 抛给前端这个异常，前端会停止等待当前请求并发起刷新令牌的请求，令牌刷新后，再发起当前请求
+            throw new GuiguException(ResultCodeEnum.SIGN_OVERDUE);
         }
 
         Object result = point.proceed(args);
