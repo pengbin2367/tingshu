@@ -4,8 +4,10 @@ import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
+import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.search.dao.AlbumInfoIndexDao;
 import com.atguigu.tingshu.search.service.ItemService;
+import com.atguigu.tingshu.user.client.UserInfoFeignClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,9 @@ public class ItemServiceImpl implements ItemService {
     @Resource
     private AlbumInfoFeignClient albumInfoFeignClient;
 
+    @Resource
+    private UserInfoFeignClient userInfoFeignClient;
+
     @Override
     public void addAlbumFromDbToEs(Long albumId) {
         AlbumInfo albumInfo = albumInfoFeignClient.getAlbumInfo(albumId);
@@ -34,8 +39,13 @@ public class ItemServiceImpl implements ItemService {
         albumInfoIndex.setId(albumInfo.getId());
         albumInfoIndex.setAlbumTitle(albumInfo.getAlbumTitle());
         albumInfoIndex.setAlbumIntro(albumInfo.getAlbumIntro());
-        // TODO 查询作者名字
-        albumInfoIndex.setAnnouncerName(albumInfo.getUserId().toString());
+        // 查询作者名字
+        UserInfo userInfo = userInfoFeignClient.getUserInfo(albumInfo.getUserId());
+        if (null == userInfo) {
+            albumInfoIndex.setAnnouncerName(albumInfo.getUserId().toString());
+        } else {
+            albumInfoIndex.setAnnouncerName(userInfo.getNickname());
+        }
         albumInfoIndex.setCoverUrl(albumInfo.getCoverUrl());
         albumInfoIndex.setIncludeTrackCount(albumInfo.getIncludeTrackCount());
         albumInfoIndex.setIsFinished(albumInfo.getIsFinished().toString());

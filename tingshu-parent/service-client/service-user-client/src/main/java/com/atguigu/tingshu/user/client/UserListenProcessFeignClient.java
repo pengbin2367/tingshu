@@ -1,6 +1,5 @@
 package com.atguigu.tingshu.user.client;
 
-import com.atguigu.tingshu.user.client.impl.UserListenProcessDegradeFeignClient;
 import org.springframework.cloud.openfeign.FeignClient;
 
 /**
@@ -10,7 +9,7 @@ import org.springframework.cloud.openfeign.FeignClient;
  *
  * @author qy
  */
-@FeignClient(value = "service-user", fallback = UserListenProcessDegradeFeignClient.class)
+@FeignClient(value = "service-user")
 public interface UserListenProcessFeignClient {
 
 }
