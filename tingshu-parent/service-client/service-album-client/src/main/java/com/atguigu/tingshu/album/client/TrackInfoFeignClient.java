@@ -1,6 +1,5 @@
 package com.atguigu.tingshu.album.client;
 
-import com.atguigu.tingshu.album.client.impl.TrackInfoDegradeFeignClient;
 import org.springframework.cloud.openfeign.FeignClient;
 
 /**
@@ -10,7 +9,7 @@ import org.springframework.cloud.openfeign.FeignClient;
  *
  * @author qy
  */
-@FeignClient(value = "service-album", fallback = TrackInfoDegradeFeignClient.class)
+@FeignClient(value = "service-album")
 public interface TrackInfoFeignClient {
 
 }

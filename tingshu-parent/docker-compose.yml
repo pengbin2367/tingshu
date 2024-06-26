@@ -40,6 +40,11 @@ services:
     ports:
       - "8858:8858"
 
+# FIXME 启动失败（不连通）
+#  docker run --name elasticsearch-ts -p 9200:9200 -p 9300:9300 --net elastic -e "discovery.type=single-node" -e ES_JAVA_OPTS="-Xms1024m -Xmx1024m" -v /docker/tingshu/es/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml -v /docker/tingshu/es/data:/usr/share/elasticsearch/data -v /docker/tingshu/es/plugins:/usr/share/elasticsearch/plugins -d elasticsearch:8.5.0
+#  docker run --name es01 --net elastic -p 9200:9200 -it -m 1GB docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+#  export ELASTIC_PASSWORD="pengbin"
+#  docker run --name kib01 --net elastic -p 5601:5601 docker.elastic.co/kibana/kibana:8.5.0
 #  ts-elasticsearch:
 #    image: elasticsearch:8.5.0
 #    container_name: ts-elasticsearch
@@ -53,6 +58,8 @@ services:
 #      - /docker/tingshu/es/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
 #      - /docker/tingshu/es/data:/usr/share/elasticsearch/data
 #      - /docker/tingshu/es/plugins:/usr/share/elasticsearch/plugins
+#    networks:
+#      elastic:
 #
 #  ts-logstash:
 #    image: logstash:8.5.0
@@ -63,10 +70,12 @@ services:
 #      - "5044:5044"
 #      - "9600:9600"
 #    volumes:
-#      - /mnt/docker/elk/logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
-#      - /mnt/docker/elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+#      - /docker/tingshu/elk/logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+#      - /docker/tingshu/elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
 #    privileged: true
 #    mem_limit: 1000M
+#    networks:
+#      elastic:
 #
 #  ts-kibana:
 #    image: kibana:8.5.0
@@ -74,7 +83,9 @@ services:
 #    ports:
 #      - "5601:5601"
 #    volumes:
-#      - /opt/kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml
+#      - /docker/tingshu/kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml
+#    networks:
+#      elastic:
 
   ts-minio:
     image: minio/minio
@@ -89,3 +100,5 @@ services:
       - /docker/tingshu/minio/data:/data
       - /docker/tingshu/minio/config:/root/.minio
     command: server /data --console-address ":9001"
+networks:
+  elastic:

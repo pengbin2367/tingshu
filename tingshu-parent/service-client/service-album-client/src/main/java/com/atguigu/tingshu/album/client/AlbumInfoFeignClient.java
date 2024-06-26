@@ -1,7 +1,9 @@
 package com.atguigu.tingshu.album.client;
 
-import com.atguigu.tingshu.album.client.impl.AlbumInfoDegradeFeignClient;
+import com.atguigu.tingshu.model.album.AlbumInfo;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 /**
  * <p>
@@ -10,7 +12,9 @@ import org.springframework.cloud.openfeign.FeignClient;
  *
  * @author qy
  */
-@FeignClient(value = "service-album", fallback = AlbumInfoDegradeFeignClient.class)
+@FeignClient(value = "service-album", path = "/client/album/albumInfo", contextId = "albumInfoFeignClient")
 public interface AlbumInfoFeignClient {
 
+    @GetMapping("/getAlbumInfo/{albumId}")
+    public AlbumInfo getAlbumInfo(@PathVariable(value = "albumId") Long albumId);
 }
