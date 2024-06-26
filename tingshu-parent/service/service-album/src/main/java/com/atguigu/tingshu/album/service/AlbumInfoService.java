@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;
+import java.util.Map;
 
 /***
  * 专辑管理相关的接口类
@@ -25,4 +26,6 @@ public interface AlbumInfoService extends IService<AlbumInfo> {
     void updateAlbumInfo(Long albumId, AlbumInfoVo albumInfoVo);
 
     List<AlbumInfo> findUserAllAlbumList();
+
+    Map<String, Integer> getAlbumStatInfo(Long albumId);
 }

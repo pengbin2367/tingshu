@@ -2,6 +2,7 @@ package com.atguigu.tingshu.search.service.impl;
 
 import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
 import com.atguigu.tingshu.album.client.CategoryFeignClient;
+import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -61,11 +63,12 @@ public class ItemServiceImpl implements ItemService {
         albumInfoIndex.setCategory1Id(baseCategoryView.getCategory1Id());
         albumInfoIndex.setCategory2Id(baseCategoryView.getCategory2Id());
         albumInfoIndex.setCategory3Id(albumInfo.getCategory3Id());
-        // TODO 查询专辑统计信息
-        albumInfoIndex.setPlayStatNum(0);
-        albumInfoIndex.setSubscribeStatNum(0);
-        albumInfoIndex.setBuyStatNum(0);
-        albumInfoIndex.setCommentStatNum(0);
+        // 查询专辑统计信息
+        Map<String, Integer> albumStatInfo = albumInfoFeignClient.getAlbumStatInfo(albumId);
+        albumInfoIndex.setPlayStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_PLAY));
+        albumInfoIndex.setSubscribeStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_SUBSCRIBE));
+        albumInfoIndex.setBuyStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_BROWSE));
+        albumInfoIndex.setCommentStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_COMMENT));
         albumInfoIndex.setHotScore(0d);
         // TODO 查询专辑标签
         albumInfoIndex.setAttributeValueIndexList(null);

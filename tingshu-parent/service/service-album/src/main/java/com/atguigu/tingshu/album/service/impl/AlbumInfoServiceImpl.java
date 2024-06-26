@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /***
  * 专辑管理相关的接口类的实现类
@@ -135,5 +137,14 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
     @Override
     public List<AlbumInfo> findUserAllAlbumList() {
         return list(new LambdaQueryWrapper<AlbumInfo>().eq(AlbumInfo::getUserId, 1L));
+    }
+
+    @Override
+    public Map<String, Integer> getAlbumStatInfo(Long albumId) {
+        List<AlbumStat> albumStats = albumStatMapper.selectList(new LambdaQueryWrapper<AlbumStat>().eq(AlbumStat::getAlbumId, albumId));
+        return albumStats.stream().collect(Collectors.toMap(
+                AlbumStat::getStatType,
+                AlbumStat::getStatNum
+        ));
     }
 }

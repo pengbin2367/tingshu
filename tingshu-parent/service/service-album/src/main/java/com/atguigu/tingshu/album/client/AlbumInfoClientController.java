@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/client/album/albumInfo")
 public class AlbumInfoClientController {
@@ -18,5 +20,10 @@ public class AlbumInfoClientController {
     @GetMapping("/getAlbumInfo/{albumId}")
     public AlbumInfo getAlbumInfo(@PathVariable(value = "albumId") Long albumId) {
         return albumInfoService.getById(albumId);
+    }
+
+    @GetMapping("/getAlbumStatInfo/{albumId}")
+    public Map<String, Integer> getAlbumStatInfo(@PathVariable(value = "albumId") Long albumId) {
+        return albumInfoService.getAlbumStatInfo(albumId);
     }
 }
