@@ -147,4 +147,9 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
                 AlbumStat::getStatNum
         ));
     }
+
+    @Override
+    public List<AlbumAttributeValue> getAlbumAttributeValue(Long albumId) {
+        return albumAttributeValueMapper.selectList(new LambdaQueryWrapper<AlbumAttributeValue>().eq(AlbumAttributeValue::getAlbumId, albumId));
+    }
 }

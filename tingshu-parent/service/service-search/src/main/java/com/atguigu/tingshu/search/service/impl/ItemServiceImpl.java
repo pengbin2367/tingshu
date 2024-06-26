@@ -4,9 +4,11 @@ import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
 import com.atguigu.tingshu.album.client.CategoryFeignClient;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
+import com.atguigu.tingshu.model.search.AttributeValueIndex;
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.search.dao.AlbumInfoIndexDao;
 import com.atguigu.tingshu.search.service.ItemService;
@@ -17,7 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -70,8 +74,15 @@ public class ItemServiceImpl implements ItemService {
         albumInfoIndex.setBuyStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_BROWSE));
         albumInfoIndex.setCommentStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_COMMENT));
         albumInfoIndex.setHotScore(0d);
-        // TODO 查询专辑标签
-        albumInfoIndex.setAttributeValueIndexList(null);
+        // 查询专辑标签
+        List<AlbumAttributeValue> albumAttributeValues = albumInfoFeignClient.getAlbumAttributeValue(albumId);
+        List<AttributeValueIndex> attributeValueIndexList = albumAttributeValues.stream().map(albumAttributeValue -> {
+            AttributeValueIndex attributeValueIndex = new AttributeValueIndex();
+            attributeValueIndex.setAttributeId(albumAttributeValue.getAttributeId());
+            attributeValueIndex.setValueId(albumAttributeValue.getValueId());
+            return attributeValueIndex;
+        }).collect(Collectors.toList());
+        albumInfoIndex.setAttributeValueIndexList(attributeValueIndexList);
         albumInfoIndexDao.save(albumInfoIndex);
     }
 
