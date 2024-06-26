@@ -1,8 +1,10 @@
 package com.atguigu.tingshu.search.service.impl;
 
 import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
+import com.atguigu.tingshu.album.client.CategoryFeignClient;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.model.album.AlbumInfo;
+import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.search.dao.AlbumInfoIndexDao;
@@ -29,6 +31,9 @@ public class ItemServiceImpl implements ItemService {
     @Resource
     private UserInfoFeignClient userInfoFeignClient;
 
+    @Resource
+    private CategoryFeignClient categoryFeignClient;
+
     @Override
     public void addAlbumFromDbToEs(Long albumId) {
         AlbumInfo albumInfo = albumInfoFeignClient.getAlbumInfo(albumId);
@@ -51,9 +56,10 @@ public class ItemServiceImpl implements ItemService {
         albumInfoIndex.setIsFinished(albumInfo.getIsFinished().toString());
         albumInfoIndex.setPayType(albumInfo.getPayType());
         albumInfoIndex.setCreateTime(new Date());
-        // TODO 查询分类信息
-        albumInfoIndex.setCategory1Id(1L);
-        albumInfoIndex.setCategory2Id(2L);
+        // 查询分类信息
+        BaseCategoryView baseCategoryView = categoryFeignClient.getBaseCategoryView(albumInfo.getCategory3Id());
+        albumInfoIndex.setCategory1Id(baseCategoryView.getCategory1Id());
+        albumInfoIndex.setCategory2Id(baseCategoryView.getCategory2Id());
         albumInfoIndex.setCategory3Id(albumInfo.getCategory3Id());
         // TODO 查询专辑统计信息
         albumInfoIndex.setPlayStatNum(0);
