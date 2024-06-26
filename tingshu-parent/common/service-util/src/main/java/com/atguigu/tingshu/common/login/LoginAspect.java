@@ -43,7 +43,8 @@ public class LoginAspect {
         GuiguLogin guiguLogin = method.getAnnotation(GuiguLogin.class);
         // 获取是否需要登陆属性
         Object[] args = point.getArgs();
-        if (!guiguLogin.isLogin()) {
+        // FIXME 测试方便，不进行拦截
+        if (guiguLogin.isLogin()) {
             // 不需要则获取方法的参数，直接执行方法返回
             return point.proceed(args);
         }

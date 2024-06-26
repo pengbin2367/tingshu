@@ -3,9 +3,10 @@ package com.atguigu.tingshu.album.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.mapper.*;
 import com.atguigu.tingshu.album.service.BaseCategoryService;
-import com.atguigu.tingshu.model.album.BaseAttribute;
-import com.atguigu.tingshu.model.album.BaseCategory1;
-import com.atguigu.tingshu.model.album.BaseCategoryView;
+import com.atguigu.tingshu.model.album.*;
+import com.atguigu.tingshu.model.base.BaseEntity;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -69,5 +70,25 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 	@Override
 	public List<BaseAttribute> findBaseAttributeBycategory1Id(Long category1Id) {
 		return baseAttributeMapper.selectBaseAttributeBycategory1Id(category1Id);
+	}
+
+	@Override
+	public List<BaseCategory3> findTopBaseCategory3(Long category1Id) {
+		List<BaseCategory2> category2List = baseCategory2Mapper.selectList(new LambdaQueryWrapper<BaseCategory2>().eq(BaseCategory2::getCategory1Id, category1Id));
+		List<Long> category2IdList = category2List.stream().map(BaseEntity::getId).toList();
+		return baseCategory3Mapper.selectPage(new Page<>(1, 7), new LambdaQueryWrapper<BaseCategory3>()
+				.in(BaseCategory3::getCategory2Id, category2IdList)
+				.orderByAsc(BaseCategory3::getOrderNum)
+		).getRecords();
+	}
+
+	@Override
+	public List<BaseCategory3> getBaseCategoryListById(Long category1Id) {
+		List<BaseCategory2> category2List = baseCategory2Mapper.selectList(new LambdaQueryWrapper<BaseCategory2>().eq(BaseCategory2::getCategory1Id, category1Id));
+		List<Long> category2IdList = category2List.stream().map(BaseEntity::getId).toList();
+		return baseCategory3Mapper.selectList(new LambdaQueryWrapper<BaseCategory3>()
+				.in(BaseCategory3::getCategory2Id, category2IdList)
+				.orderByAsc(BaseCategory3::getOrderNum)
+		);
 	}
 }
