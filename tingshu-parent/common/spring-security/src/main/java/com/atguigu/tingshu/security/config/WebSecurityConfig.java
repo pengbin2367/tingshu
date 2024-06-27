@@ -67,6 +67,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests()
                 // admin开头的都保护起来，平台管理端接口
                 .requestMatchers("/api/**").permitAll()
+                .requestMatchers("/client/**").permitAll()
                 //swg相关
                 .requestMatchers("/favicon.ico","/swagger-resources/**", "/webjars/**", "/v3/**", "/doc.html").permitAll()
                 //用户登录相关接口
