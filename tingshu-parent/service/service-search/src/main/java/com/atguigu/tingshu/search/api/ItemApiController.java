@@ -25,5 +25,13 @@ public class ItemApiController {
 		itemService.removeAlbumFromEs(albumId);
 		return "success";
 	}
+
+	@GetMapping("/addAll")
+	public String add() {
+		for (Long albumId = 1L; albumId < 1577; albumId++) {
+			itemService.addAlbumFromDbToEs(albumId);
+		}
+		return "success";
+	}
 }
 

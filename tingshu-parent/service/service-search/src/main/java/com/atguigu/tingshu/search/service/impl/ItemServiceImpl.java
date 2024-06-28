@@ -4,23 +4,28 @@ import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
 import com.atguigu.tingshu.album.client.CategoryFeignClient;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.common.util.PinYinUtils;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.search.AttributeValueIndex;
+import com.atguigu.tingshu.model.search.SuggestIndex;
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.search.dao.AlbumInfoIndexDao;
+import com.atguigu.tingshu.search.dao.SuggestIndexDao;
 import com.atguigu.tingshu.search.service.ItemService;
 import com.atguigu.tingshu.user.client.UserInfoFeignClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.elasticsearch.core.suggest.Completion;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -30,6 +35,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private AlbumInfoIndexDao albumInfoIndexDao;
+
+    @Autowired
+    private SuggestIndexDao suggestIndexDao;
 
     @Resource
     private AlbumInfoFeignClient albumInfoFeignClient;
@@ -84,6 +92,24 @@ public class ItemServiceImpl implements ItemService {
         }).collect(Collectors.toList());
         albumInfoIndex.setAttributeValueIndexList(attributeValueIndexList);
         albumInfoIndexDao.save(albumInfoIndex);
+        // 存储搜索提示词
+        saveSuggestInfo(albumInfoIndex.getAlbumTitle());
+        saveSuggestInfo(albumInfoIndex.getAlbumIntro());
+        saveSuggestInfo(albumInfoIndex.getAnnouncerName());
+    }
+
+    private void saveSuggestInfo(String title) {
+        try {
+            SuggestIndex suggestIndex = new SuggestIndex();
+            suggestIndex.setId(UUID.randomUUID().toString().replaceAll("-", ""));
+            suggestIndex.setTitle(title);
+            suggestIndex.setKeyword(new Completion(new String[]{title}));
+            suggestIndex.setKeywordPinyin(new Completion(new String[]{PinYinUtils.toHanyuPinyin(title)}));
+            suggestIndex.setKeywordSequence(new Completion(new String[]{PinYinUtils.getFirstLetter(title)}));
+            suggestIndexDao.save(suggestIndex);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
