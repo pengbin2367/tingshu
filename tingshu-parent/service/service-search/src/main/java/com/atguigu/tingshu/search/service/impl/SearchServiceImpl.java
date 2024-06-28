@@ -5,6 +5,7 @@ import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.ChildScoreMode;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.alibaba.fastjson.JSONObject;
@@ -122,6 +123,20 @@ public class SearchServiceImpl implements SearchService {
         if (category3Id != null) {
             boolQuery.filter(f -> f.term(t -> t.field("category3Id").value(category3Id)));
         }
+        List<String> attributeList = albumIndexQuery.getAttributeList();
+        if (attributeList != null && !attributeList.isEmpty()) {
+            attributeList.forEach(attribute -> {
+                String[] attrs = attribute.split(":");
+                boolQuery.filter(f -> f.nested(nested -> nested
+                        .path("attributeValueIndexList")
+                        .query(query -> query.bool(bool -> bool
+                                .must(m -> m.term(t -> t.field("attributeValueIndexList.attributeId").value(attrs[0])))
+                                .must(m -> m.term(t -> t.field("attributeValueIndexList.valueId").value(attrs[1])))))
+                        .scoreMode(ChildScoreMode.None)
+                ));
+            });
+        }
+
         builder.query(boolQuery.build()._toQuery());
         // 设置分页属性
         Integer pageNo = albumIndexQuery.getPageNo();
