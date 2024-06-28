@@ -1,5 +1,6 @@
 package com.atguigu.tingshu.album.api;
 
+import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.service.BaseCategoryService;
 import com.atguigu.tingshu.common.login.GuiguLogin;
 import com.atguigu.tingshu.common.result.Result;
@@ -46,6 +47,12 @@ public class BaseCategoryApiController {
 	@GetMapping("/getBaseCategoryList/{category1Id}")
 	public Result<List<BaseCategory3>> getBaseCategoryList(@PathVariable("category1Id") Long category1Id) {
 		return Result.ok(baseCategoryService.getBaseCategoryListById(category1Id));
+	}
+
+	@GuiguLogin
+	@GetMapping("/getBaseCategoryList1/{category1Id}")
+	public Result<JSONObject> getBaseCategoryList1(@PathVariable("category1Id") Long category1Id) {
+		return Result.ok(baseCategoryService.getBaseCategoryList(category1Id));
 	}
 }
 
