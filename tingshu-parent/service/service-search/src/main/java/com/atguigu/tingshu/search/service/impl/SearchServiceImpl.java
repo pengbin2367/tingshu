@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.alibaba.fastjson.JSONObject;
@@ -11,10 +12,15 @@ import com.atguigu.tingshu.album.client.CategoryFeignClient;
 import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.base.BaseEntity;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
+import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.service.SearchService;
+import com.atguigu.tingshu.vo.search.AlbumInfoIndexVo;
+import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
 import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -74,5 +80,91 @@ public class SearchServiceImpl implements SearchService {
             result.put("list", albumInfoIndexList);
             return result;
         });
+    }
+
+    @SneakyThrows
+    @Override
+    public Object search(AlbumIndexQuery albumIndexQuery) {
+        SearchRequest request = buidQueryParams(albumIndexQuery);
+        SearchResponse<AlbumInfoIndex> response = elasticsearchClient.search(request, AlbumInfoIndex.class);
+        AlbumSearchResponseVo searchResult = getSearchResult(response);
+        // 设置页码相关属性
+        searchResult.setPageNo(albumIndexQuery.getPageNo());
+        Integer pageSize = albumIndexQuery.getPageSize();
+        searchResult.setPageSize(pageSize);
+        Long total = searchResult.getTotal();
+        searchResult.setTotalPages(total % pageSize == 0 ? total / pageSize : total / pageSize + 1);
+        return searchResult;
+    }
+
+    private SearchRequest buidQueryParams(AlbumIndexQuery albumIndexQuery) {
+        SearchRequest.Builder builder = new SearchRequest.Builder();
+        // 设置索引
+        builder.index("albuminfo");
+
+        BoolQuery.Builder boolQuery = new BoolQuery.Builder();
+        // 获取关键词
+        String keyword = albumIndexQuery.getKeyword();
+        // 构建查询条件
+        if (StringUtils.isNotBlank(keyword)) {
+            boolQuery.should(s1 -> s1.match(m -> m.field("albumTitle").query(keyword)))
+                    .should(s2 -> s2.match(m -> m.field("albumIntro").query(keyword)));
+        }
+        Long category1Id = albumIndexQuery.getCategory1Id();
+        if (category1Id != null) {
+            boolQuery.filter(f -> f.term(t -> t.field("category1Id").value(category1Id)));
+        }
+        Long category2Id = albumIndexQuery.getCategory2Id();
+        if (category2Id != null) {
+            boolQuery.filter(f -> f.term(t -> t.field("category2Id").value(category2Id)));
+        }
+        Long category3Id = albumIndexQuery.getCategory3Id();
+        if (category3Id != null) {
+            boolQuery.filter(f -> f.term(t -> t.field("category3Id").value(category3Id)));
+        }
+        builder.query(boolQuery.build()._toQuery());
+        // 设置分页属性
+        Integer pageNo = albumIndexQuery.getPageNo();
+        Integer pageSize = albumIndexQuery.getPageSize();
+        builder.from((pageNo - 1) * pageSize);
+        builder.size(pageSize);
+        // 设置排序
+        String order = albumIndexQuery.getOrder();
+        if (StringUtils.isNotEmpty(order)) {
+            String[] orders = order.split(":");
+            switch (orders[0]) {
+                case "1" -> builder.sort(sort -> sort.field(f -> f.field("hotScore").order(SortOrder.valueOf(orders[1]))));
+                case "2" -> builder.sort(sort -> sort.field(f -> f.field("playStatNum").order(SortOrder.valueOf(orders[1]))));
+                case "3" -> builder.sort(sort -> sort.field(f -> f.field("subscribeStatNum").order(SortOrder.valueOf(orders[1]))));
+            }
+        }
+        // 高亮
+        builder.highlight(high -> high.fields("albumTitle", fn -> fn.preTags("<font style=color:red>").postTags("</font>")));
+        return builder.build();
+    }
+
+    private AlbumSearchResponseVo getSearchResult(SearchResponse<AlbumInfoIndex> response) {
+        AlbumSearchResponseVo result = new AlbumSearchResponseVo();
+        // 获取命中的数据
+        List<AlbumInfoIndexVo> albumInfoIndexList = response.hits().hits().stream().map(albumInfoIndexHit -> {
+            AlbumInfoIndexVo albumInfoIndexVo = new AlbumInfoIndexVo();
+            AlbumInfoIndex albumInfoIndex = albumInfoIndexHit.source();
+            Map<String, List<String>> highlight = albumInfoIndexHit.highlight();
+            if (highlight != null && !highlight.isEmpty()) {
+                List<String> albumTitleList = highlight.get("albumTitle");
+                if (albumTitleList != null && !albumTitleList.isEmpty()) {
+                    String title = "";
+                    for (String albumTitle : albumTitleList) {
+                        title += albumTitle;
+                    }
+                    albumInfoIndex.setAlbumTitle(title);
+                }
+            }
+            BeanUtils.copyProperties(albumInfoIndex, albumInfoIndexVo);
+            return albumInfoIndexVo;
+        }).toList();
+        result.setList(albumInfoIndexList);
+        result.setTotal(response.hits().total() != null ? response.hits().total().value() : 0);
+        return result;
     }
 }
