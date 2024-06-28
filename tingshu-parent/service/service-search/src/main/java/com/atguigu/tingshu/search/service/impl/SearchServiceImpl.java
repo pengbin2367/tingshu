@@ -8,11 +8,13 @@ import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.ChildScoreMode;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Suggestion;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.client.CategoryFeignClient;
 import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.base.BaseEntity;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
+import com.atguigu.tingshu.model.search.SuggestIndex;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.service.SearchService;
 import com.atguigu.tingshu.vo.search.AlbumInfoIndexVo;
@@ -25,9 +27,12 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 @Slf4j
@@ -181,5 +186,51 @@ public class SearchServiceImpl implements SearchService {
         result.setList(albumInfoIndexList);
         result.setTotal(response.hits().total() != null ? response.hits().total().value() : 0);
         return result;
+    }
+
+    @SneakyThrows
+    @Override
+    public Object completeSuggest(String keywords) {
+        SearchRequest.Builder builder = new SearchRequest.Builder();
+        builder.index("suggestinfo");
+        builder.suggest(s1 -> s1
+                .suggesters("suggestKeyword", s2 -> s2
+                        .prefix(keywords)
+                        .completion(s3 -> s3.field("keyword")       // 指定匹配的域
+                                .size(10)                           // 指定匹配的数量
+                                .skipDuplicates(true)               // 是否去重
+                                .fuzzy(s4 -> s4.fuzziness("auto"))  // 设置偏移量：2个
+                        )
+                )
+                .suggesters("suggestKeywordPinyin", s2 -> s2
+                        .prefix(keywords)
+                        .completion(s3 -> s3.field("keywordPinyin")
+                                .size(10)
+                                .skipDuplicates(true)
+                                .fuzzy(s4 -> s4.fuzziness("auto"))
+                        )
+                )
+                .suggesters("suggestKeywordSequence", s2 -> s2
+                        .prefix(keywords)
+                        .completion(s3 -> s3.field("keywordSequence")
+                                .size(10)
+                                .skipDuplicates(true)
+                                .fuzzy(s4 -> s4.fuzziness("auto"))
+                        )
+                )
+        );
+        SearchResponse<SuggestIndex> response = elasticsearchClient.search(builder.build(), SuggestIndex.class);
+        List<String> suggestKeyword = getSuggestResult(response.suggest().get("suggestKeyword"));
+        List<String> suggestKeywordPinyin = getSuggestResult(response.suggest().get("suggestKeywordPinyin"));
+        List<String> suggestKeywordSequence = getSuggestResult(response.suggest().get("suggestKeywordSequence"));
+        return Stream.of(suggestKeyword, suggestKeywordPinyin, suggestKeywordSequence)
+                .filter(Objects::nonNull).flatMap(Collection::stream).collect(Collectors.toSet())
+                .stream().limit(10).collect(Collectors.toList());
+    }
+
+    private List<String> getSuggestResult(List<Suggestion<SuggestIndex>> suggestKeyword) {
+        return suggestKeyword.get(0).completion().options()
+                .stream().map(s -> s.source().getTitle())
+                .collect(Collectors.toList());
     }
 }

@@ -25,5 +25,10 @@ public class SearchApiController {
     public Result search(@RequestBody AlbumIndexQuery albumIndexQuery) {
         return Result.ok(searchService.search(albumIndexQuery));
     }
+
+    @GetMapping("/completeSuggest/{keywords}")
+    public Result completeSuggest(@PathVariable(value = "keywords") String keywords) {
+        return Result.ok(searchService.completeSuggest(keywords));
+    }
 }
 
