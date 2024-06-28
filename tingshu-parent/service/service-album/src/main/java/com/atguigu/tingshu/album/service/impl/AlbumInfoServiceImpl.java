@@ -4,6 +4,7 @@ import com.atguigu.tingshu.album.mapper.AlbumAttributeValueMapper;
 import com.atguigu.tingshu.album.mapper.AlbumInfoMapper;
 import com.atguigu.tingshu.album.mapper.AlbumStatMapper;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
+import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
@@ -18,6 +19,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +42,9 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
     @Autowired
     private AlbumStatMapper albumStatMapper;
 
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
+
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void saveAlbumInfo(AlbumInfoVo albumInfoVo) {
@@ -57,6 +62,8 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
         saveAlbumAttributeValue(albumInfoVo.getAlbumAttributeValueVoList(), albumId);
         // 初始化专辑统计信息
         initAlbumStat(albumId);
+        // 上架数据写入es
+        kafkaTemplate.send(KafkaConstant.QUEUE_ALBUM_UPPER, "专辑上架", albumId + "");
     }
 
     private void initAlbumStat(Long albumId) {
@@ -109,6 +116,7 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
         if (delete <= 0) throw new GuiguException(201, "删除专辑标签失败");
         delete = albumStatMapper.delete(new LambdaQueryWrapper<AlbumStat>().eq(AlbumStat::getAlbumId, albumId));
         if (delete <= 0) throw new GuiguException(201, "删除专辑统计信息失败");
+        kafkaTemplate.send(KafkaConstant.QUEUE_ALBUM_LOWER, "专辑下架", albumId + "");
     }
 
     @Override
@@ -132,6 +140,11 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
         int delete = albumAttributeValueMapper.delete(new LambdaQueryWrapper<AlbumAttributeValue>().eq(AlbumAttributeValue::getAlbumId, albumId));
         if (delete < 0) throw new GuiguException(201, "删除专辑标签失败");
         saveAlbumAttributeValue(albumInfoVo.getAlbumAttributeValueVoList(), albumId);
+        if (albumInfo.getIsOpen().equals("0")) {
+            kafkaTemplate.send(KafkaConstant.QUEUE_ALBUM_LOWER, "专辑下架", albumId + "");
+        } else {
+            kafkaTemplate.send(KafkaConstant.QUEUE_ALBUM_UPPER, "专辑上架", albumId + "");
+        }
     }
 
     @Override
