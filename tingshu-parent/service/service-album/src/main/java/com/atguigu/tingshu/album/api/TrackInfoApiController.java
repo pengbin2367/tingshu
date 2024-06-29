@@ -35,7 +35,7 @@ public class TrackInfoApiController {
 	@PostMapping("/saveTrackInfo")
 	public Result saveTrackInfo(@RequestBody @Validated TrackInfoVo trackInfoVo) {
 		//	调用服务层方法
-		trackInfoService.saveTrackInfo(trackInfoVo, 10086L);
+		trackInfoService.saveTrackInfo(trackInfoVo);
 		return Result.ok();
 	}
 

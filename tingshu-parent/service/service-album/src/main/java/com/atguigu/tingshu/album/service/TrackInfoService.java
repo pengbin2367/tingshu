@@ -13,7 +13,7 @@ public interface TrackInfoService extends IService<TrackInfo> {
 
     JSONObject uploadTrack(MultipartFile file);
 
-    void saveTrackInfo(TrackInfoVo trackInfoVo, Long userId);
+    void saveTrackInfo(TrackInfoVo trackInfoVo);
 
     IPage<TrackListVo> findUserTrackPage(Long page, Long size, TrackInfoQuery trackInfoQuery);
 

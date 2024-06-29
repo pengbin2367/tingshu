@@ -9,6 +9,7 @@ import com.atguigu.tingshu.album.service.TrackInfoService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.result.ResultCodeEnum;
+import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.common.util.UploadFileUtil;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.model.album.TrackStat;
@@ -68,7 +69,7 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 
 	@Transactional(rollbackFor = Exception.class)
 	@Override
-	public void saveTrackInfo(TrackInfoVo trackInfoVo, Long userId) {
+	public void saveTrackInfo(TrackInfoVo trackInfoVo) {
 		String mediaFileId = trackInfoVo.getMediaFileId();
 		DescribeMediaInfosResponse response = getVodFileInfo(mediaFileId);
 		if (response == null || response.getMediaInfoSet() == null) {
@@ -81,7 +82,7 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 		trackInfo.setMediaSize(mediaInfo.getMetaData().getSize());
 		trackInfo.setMediaType(mediaInfo.getBasicInfo().getType());
 		trackInfo.setMediaFileId(mediaFileId);
-		trackInfo.setUserId(userId);
+		trackInfo.setUserId(AuthContextHolder.getUserId());
 		if (!save(trackInfo)) {
 			throw new GuiguException(201, "保存声音失败");
 		}
@@ -125,8 +126,7 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 	public void removeTrackInfo(Long id) {
 		TrackInfo trackInfo = getById(id);
 		Long albumId = trackInfo.getAlbumId();
-		// TODO 用户系统完成后，改为真实用户
-		boolean remove = remove(new LambdaQueryWrapper<TrackInfo>().eq(TrackInfo::getId, id).eq(TrackInfo::getUserId, 10086L));
+		boolean remove = remove(new LambdaQueryWrapper<TrackInfo>().eq(TrackInfo::getId, id).eq(TrackInfo::getUserId, AuthContextHolder.getUserId()));
 		if (!remove) throw new GuiguException(201, "删除声音信息失败");
 		int delete = trackStatMapper.delete(new LambdaQueryWrapper<TrackStat>().eq(TrackStat::getTrackId, id));
 		if (delete <= 0) throw new GuiguException(201, "删除声音统计信息失败");
@@ -158,6 +158,7 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 			trackInfo.setMediaType(mediaInfo.getBasicInfo().getType());
 			trackInfo.setMediaDuration(BigDecimal.valueOf(mediaInfo.getMetaData().getDuration()));
 			trackInfo.setMediaSize(mediaInfo.getMetaData().getSize());
+			trackInfo.setUserId(AuthContextHolder.getUserId());
 		}
 		//	修改数据
 		this.updateById(trackInfo);

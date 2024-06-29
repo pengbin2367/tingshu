@@ -7,6 +7,7 @@ import com.atguigu.tingshu.album.service.AlbumInfoService;
 import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.AlbumStat;
@@ -52,8 +53,7 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
         AlbumInfo albumInfo = new AlbumInfo();
         BeanUtils.copyProperties(albumInfoVo, albumInfo);
         albumInfo.setStatus(SystemConstant.ALBUM_STATUS_NO_PASS);
-        // TODO 用户系统完成后，改为真实用户
-        albumInfo.setUserId(10086L);
+        albumInfo.setUserId(AuthContextHolder.getUserId());
         if (!save(albumInfo)) {
             throw new GuiguException(201, "保存专辑信息失败");
         }
@@ -108,8 +108,7 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
         boolean remove = remove(
                 new LambdaQueryWrapper<AlbumInfo>()
                         .eq(AlbumInfo::getId, albumId)
-                        // TODO 用户系统完成后，改为真实用户
-                        .eq(AlbumInfo::getUserId, 10086L)
+                        .eq(AlbumInfo::getUserId, AuthContextHolder.getUserId())
         );
         if (!remove) throw new GuiguException(201, "删除专辑信息失败");
         int delete = albumAttributeValueMapper.delete(new LambdaQueryWrapper<AlbumAttributeValue>().eq(AlbumAttributeValue::getAlbumId, albumId));
@@ -134,8 +133,7 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
     public void updateAlbumInfo(Long albumId, AlbumInfoVo albumInfoVo) {
         AlbumInfo albumInfo = new AlbumInfo();
         BeanUtils.copyProperties(albumInfoVo, albumInfo);
-        // TODO 用户系统完成后，改为真实用户
-        update(albumInfo, new LambdaQueryWrapper<AlbumInfo>().eq(AlbumInfo::getId, albumId).eq(AlbumInfo::getUserId, 10086L));
+        update(albumInfo, new LambdaQueryWrapper<AlbumInfo>().eq(AlbumInfo::getId, albumId).eq(AlbumInfo::getUserId, AuthContextHolder.getUserId()));
         // 先删除旧标签，再新增标签
         int delete = albumAttributeValueMapper.delete(new LambdaQueryWrapper<AlbumAttributeValue>().eq(AlbumAttributeValue::getAlbumId, albumId));
         if (delete < 0) throw new GuiguException(201, "删除专辑标签失败");
