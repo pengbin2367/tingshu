@@ -153,14 +153,25 @@ public class SearchServiceImpl implements SearchService {
         if (StringUtils.isNotEmpty(order)) {
             String[] orders = order.split(":");
             switch (orders[0]) {
-                case "1" -> builder.sort(sort -> sort.field(f -> f.field("hotScore").order(SortOrder.valueOf(orders[1]))));
-                case "2" -> builder.sort(sort -> sort.field(f -> f.field("playStatNum").order(SortOrder.valueOf(orders[1]))));
-                case "3" -> builder.sort(sort -> sort.field(f -> f.field("subscribeStatNum").order(SortOrder.valueOf(orders[1]))));
+                case "1" -> builder.sort(sort -> sort.field(f -> f.field("hotScore").order(getSort(orders[1]))));
+                case "2" -> builder.sort(sort -> sort.field(f -> f.field("playStatNum").order(getSort(orders[1]))));
+                case "3" -> builder.sort(sort -> sort.field(f -> f.field("subscribeStatNum").order(getSort(orders[1]))));
             }
         }
         // 高亮
         builder.highlight(high -> high.fields("albumTitle", fn -> fn.preTags("<font style=color:red>").postTags("</font>")));
         return builder.build();
+    }
+
+    private SortOrder getSort(String order) {
+        String lowerCase = order.toLowerCase();
+        if ("desc".equals(lowerCase)) {
+            return SortOrder.Desc;
+        } else if ("asc".equals(lowerCase)) {
+            return SortOrder.Asc;
+        } else {
+            return null;
+        }
     }
 
     private AlbumSearchResponseVo getSearchResult(SearchResponse<AlbumInfoIndex> response) {
