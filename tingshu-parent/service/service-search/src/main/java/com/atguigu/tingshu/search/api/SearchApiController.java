@@ -1,5 +1,6 @@
 package com.atguigu.tingshu.search.api;
 
+import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.service.SearchService;
@@ -29,6 +30,11 @@ public class SearchApiController {
     @GetMapping("/completeSuggest/{keywords}")
     public Result completeSuggest(@PathVariable(value = "keywords") String keywords) {
         return Result.ok(searchService.completeSuggest(keywords));
+    }
+
+    @GetMapping("/{albumId}")
+    public Result<JSONObject> getAlbumDetails(@PathVariable(value = "albumId") Long albumId) {
+        return Result.ok(searchService.getAlbumDetails(albumId));
     }
 }
 

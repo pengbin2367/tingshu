@@ -10,15 +10,24 @@ import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Suggestion;
 import com.alibaba.fastjson.JSONObject;
+import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
 import com.atguigu.tingshu.album.client.CategoryFeignClient;
+import com.atguigu.tingshu.common.constant.SystemConstant;
+import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.BaseCategory3;
+import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.model.base.BaseEntity;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.search.SuggestIndex;
+import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.service.SearchService;
+import com.atguigu.tingshu.user.client.UserInfoFeignClient;
+import com.atguigu.tingshu.vo.album.AlbumStatVo;
 import com.atguigu.tingshu.vo.search.AlbumInfoIndexVo;
 import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
+import com.atguigu.tingshu.vo.user.UserInfoVo;
 import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +48,12 @@ import java.util.stream.Stream;
 @Service
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class SearchServiceImpl implements SearchService {
+
+    @Resource
+    private AlbumInfoFeignClient albumInfoFeignClient;
+
+    @Resource
+    private UserInfoFeignClient userInfoFeignClient;
 
     @Resource
     private CategoryFeignClient categoryFeignClient;
@@ -101,6 +116,36 @@ public class SearchServiceImpl implements SearchService {
         Long total = searchResult.getTotal();
         searchResult.setTotalPages(total % pageSize == 0 ? total / pageSize : total / pageSize + 1);
         return searchResult;
+    }
+
+    @Override
+    public JSONObject getAlbumDetails(Long albumId) {
+        JSONObject result = new JSONObject();
+        // 获取专辑详情
+        AlbumInfo albumInfo = albumInfoFeignClient.getAlbumInfo(albumId);
+        if (albumInfo == null || albumInfo.getId() == null) {
+            throw new GuiguException(201, "专辑不存在");
+        }
+        // 获取专辑统计信息
+        Map<String, Integer> albumStatInfo = albumInfoFeignClient.getAlbumStatInfo(albumId);
+        AlbumStatVo albumStatVo = new AlbumStatVo();
+        albumStatVo.setAlbumId(albumId);
+        albumStatVo.setPlayStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_PLAY));
+        albumStatVo.setSubscribeStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_SUBSCRIBE));
+        albumStatVo.setBuyStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_BROWSE));
+        albumStatVo.setCommentStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_COMMENT));
+        // 获取专辑分类信息
+        BaseCategoryView baseCategoryView = categoryFeignClient.getBaseCategoryView(albumInfo.getCategory3Id());
+        // 获取作者信息
+        UserInfo userInfo = userInfoFeignClient.getUserInfo(albumInfo.getUserId());
+        UserInfoVo userInfoVo = new UserInfoVo();
+        BeanUtils.copyProperties(userInfo, userInfoVo);
+
+        result.put("albumInfo", albumInfo);
+        result.put("albumStatVo", albumStatVo);
+        result.put("baseCategoryView", baseCategoryView);
+        result.put("announcer", userInfoVo);
+        return result;
     }
 
     private SearchRequest buidQueryParams(AlbumIndexQuery albumIndexQuery) {
