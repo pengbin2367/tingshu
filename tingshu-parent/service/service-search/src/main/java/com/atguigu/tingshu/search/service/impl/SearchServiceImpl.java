@@ -79,7 +79,7 @@ public class SearchServiceImpl implements SearchService {
         return aggregate.lterms().buckets().array().stream().map(buck -> {
             JSONObject result = new JSONObject();
             long category3Id = buck.key();
-            result.put("baseCategory", category3Map.get(category3Id));
+            result.put("baseCategory3", category3Map.get(category3Id));
             List<AlbumInfoIndex> albumInfoIndexList = buck.aggregations().get("aggHotScore").topHits().hits().hits().stream().map(
                     subBuk -> subBuk.source().to(AlbumInfoIndex.class))
                     .toList();
