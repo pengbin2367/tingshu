@@ -49,6 +49,9 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 	@Autowired
 	private RedisTemplate redisTemplate;
 
+	@Autowired
+	private RabbitTemplate rabbitTemplate;
+
 	@SneakyThrows
     @Override
 	public Object wxLogin(String code) {
@@ -78,7 +81,8 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 				userInfo.setAvatarUrl("https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif?imageView2/1/w/80/h/80");
 				userInfo.setIsVip(0);
 				save(userInfo);
-				// TODO 初始化一个账户
+				// 初始化一个账户
+				rabbitTemplate.convertAndSend("user_exchange", "user.account", userInfo.getId() + "");
 			}
 			// 注册过，获取这个用户的信息，生成一个token返回
 			// 生成一个token
