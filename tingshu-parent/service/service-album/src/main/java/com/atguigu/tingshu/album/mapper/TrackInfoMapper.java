@@ -2,6 +2,7 @@ package com.atguigu.tingshu.album.mapper;
 
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
+import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -13,4 +14,6 @@ import org.apache.ibatis.annotations.Param;
 public interface TrackInfoMapper extends BaseMapper<TrackInfo> {
 
     IPage<TrackListVo> selectUserTrackPage(Page<Object> objectPage, @Param("vo") TrackInfoQuery trackInfoQuery);
+
+    IPage<AlbumTrackListVo> selectAlbumTrancPage(Page<Object> objectPage, @Param("albumId") Long albumId);
 }

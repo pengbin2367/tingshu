@@ -27,5 +27,22 @@
         group by t1.id
         order by t1.id desc
     </select>
+    
+    <select id="selectAlbumTrancPage" resultType="com.atguigu.tingshu.vo.album.AlbumTrackListVo">
+        select
+            t1.id as trackId,
+            t1.track_title as trackTitle,
+            t1.media_duration as mediaDuration,
+            t1.order_num as orderNum,
+            t1.create_time as createTime,
+            max(if(t2.stat_type = '0701', t2.stat_num, 0)) as playStatNum,
+            max(if(t2.stat_type = '0704', t2.stat_num, 0)) as commentStatNum
+        from tingshu_album.track_info t1
+            inner join tingshu_album.track_stat t2 on t1.id = t2.track_id
+        where t1.album_id = #{albumId}
+          and t1.is_deleted = 0
+          and t2.is_deleted = 0
+        group by t1.id
+    </select>
 </mapper>
 

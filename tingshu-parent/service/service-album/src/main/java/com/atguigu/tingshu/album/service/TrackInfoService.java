@@ -3,6 +3,7 @@ package com.atguigu.tingshu.album.service;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
+import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -20,4 +21,6 @@ public interface TrackInfoService extends IService<TrackInfo> {
     void removeTrackInfo(Long id);
 
     void updateTrackInfo(Long id, TrackInfoVo trackInfoVo);
+
+    IPage<AlbumTrackListVo> findAlbumTrackPage(Long albumId, Long page, Long size);
 }

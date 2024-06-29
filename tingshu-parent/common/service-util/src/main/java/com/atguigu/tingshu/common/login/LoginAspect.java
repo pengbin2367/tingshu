@@ -84,8 +84,9 @@ public class LoginAspect {
             throw new GuiguException(ResultCodeEnum.PERMISSION);
         }
 
-        // 存储到本地线程
-        AuthContextHolder.setUserId(Long.valueOf(userId));
+        // FIXME 存储到本地线程 测试方便，使用 1
+        AuthContextHolder.setUserId(1L);
+//        AuthContextHolder.setUserId(Long.valueOf(userId));
 
         // 令牌到期时间
         Long eTimes = Long.valueOf(map.get("e_times"));

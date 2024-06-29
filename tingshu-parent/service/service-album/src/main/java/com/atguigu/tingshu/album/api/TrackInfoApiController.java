@@ -6,6 +6,7 @@ import com.atguigu.tingshu.common.login.GuiguLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
+import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -68,6 +69,14 @@ public class TrackInfoApiController {
 	public Result updateById(@PathVariable Long id, @RequestBody @Validated TrackInfoVo trackInfoVo) {
 		trackInfoService.updateTrackInfo(id, trackInfoVo);
 		return Result.ok();
+	}
+
+	@GuiguLogin
+	@GetMapping("/findAlbumTrackPage/{albumId}/{page}/{size}")
+	public Result<IPage<AlbumTrackListVo>> findAlbumTrackPage(@PathVariable(value = "albumId") Long albumId,
+															  @PathVariable(value = "page") Long page,
+															  @PathVariable(value = "size") Long size){
+		return Result.ok(trackInfoService.findAlbumTrackPage(albumId, page, size));
 	}
 }
 

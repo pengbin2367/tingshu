@@ -14,6 +14,7 @@ import com.atguigu.tingshu.common.util.UploadFileUtil;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.model.album.TrackStat;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
+import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -171,5 +172,10 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 		DeleteMediaRequest request = new DeleteMediaRequest();
 		request.setFileId(mediaFileId);
 		vodClient.DeleteMedia(request);
+	}
+
+	@Override
+	public IPage<AlbumTrackListVo> findAlbumTrackPage(Long albumId, Long page, Long size) {
+		return trackInfoMapper.selectAlbumTrancPage(new Page<>(page, size), albumId);
 	}
 }
