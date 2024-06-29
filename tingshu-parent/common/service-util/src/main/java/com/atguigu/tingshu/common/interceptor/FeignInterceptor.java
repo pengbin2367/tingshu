@@ -8,9 +8,12 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Enumeration;
+
 @Component
 public class FeignInterceptor implements RequestInterceptor {
 
+    @Override
     public void apply(RequestTemplate requestTemplate){
         //  获取请求对象
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
@@ -18,8 +21,11 @@ public class FeignInterceptor implements RequestInterceptor {
         if(null != requestAttributes) {
             ServletRequestAttributes servletRequestAttributes = (ServletRequestAttributes)requestAttributes;
             HttpServletRequest request = servletRequestAttributes.getRequest();
-            String token = request.getHeader("token");
-            requestTemplate.header("token", token);
+            Enumeration<String> headerNames = request.getHeaderNames();
+            while (headerNames.hasMoreElements()) {
+                String name = headerNames.nextElement();
+                requestTemplate.header(name, request.getHeader(name));
+            }
         }
     }
 }
