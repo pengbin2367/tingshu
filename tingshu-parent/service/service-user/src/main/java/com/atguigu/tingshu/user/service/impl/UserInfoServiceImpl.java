@@ -8,7 +8,11 @@ import com.atguigu.tingshu.common.result.ResultCodeEnum;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.common.util.IpUtil;
 import com.atguigu.tingshu.model.user.UserInfo;
+import com.atguigu.tingshu.model.user.UserPaidAlbum;
+import com.atguigu.tingshu.model.user.UserPaidTrack;
 import com.atguigu.tingshu.user.mapper.UserInfoMapper;
+import com.atguigu.tingshu.user.mapper.UserPaidAlbumMapper;
+import com.atguigu.tingshu.user.mapper.UserPaidTrackMapper;
 import com.atguigu.tingshu.user.service.UserInfoService;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -29,8 +33,10 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.security.interfaces.RSAPrivateKey;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -51,6 +57,12 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 
 	@Autowired
 	private RabbitTemplate rabbitTemplate;
+
+	@Autowired
+	private UserPaidAlbumMapper userPaidAlbumMapper;
+
+	@Autowired
+	private UserPaidTrackMapper userPaidTrackMapper;
 
 	@SneakyThrows
     @Override
@@ -133,5 +145,24 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 		String encoded = encode.getEncoded();
 		redisTemplate.opsForValue().set("User_Login_Info_" + IpUtil.getIpAddress(request), token, 1, TimeUnit.DAYS);
 		return encoded;
+	}
+
+	@Override
+	public Boolean getUserIsBuyAlbum(Long albumId) {
+		UserPaidAlbum userPaidAlbum = userPaidAlbumMapper.selectOne(new LambdaQueryWrapper<UserPaidAlbum>()
+				.eq(UserPaidAlbum::getUserId, AuthContextHolder.getUserId())
+				.eq(UserPaidAlbum::getAlbumId, albumId));
+		return null != userPaidAlbum;
+	}
+
+	@Override
+	public Map<String, String> getUserTrackIds(Long albumId) {
+		List<UserPaidTrack> userPaidTracks = userPaidTrackMapper.selectList(new LambdaQueryWrapper<UserPaidTrack>()
+				.eq(UserPaidTrack::getAlbumId, albumId)
+				.eq(UserPaidTrack::getUserId, AuthContextHolder.getUserId()));
+		return userPaidTracks.stream().collect(Collectors.toMap(
+				key -> key.getTrackId().toString(),
+				value -> "1"
+		));
 	}
 }

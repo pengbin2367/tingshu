@@ -11,9 +11,12 @@ import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.result.ResultCodeEnum;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.common.util.UploadFileUtil;
+import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.model.album.TrackStat;
+import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
+import com.atguigu.tingshu.user.client.UserInfoFeignClient;
 import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
@@ -26,9 +29,14 @@ import com.qcloud.vod.model.VodUploadRequest;
 import com.qcloud.vod.model.VodUploadResponse;
 import com.tencentcloudapi.common.Credential;
 import com.tencentcloudapi.vod.v20180717.VodClient;
-import com.tencentcloudapi.vod.v20180717.models.*;
+import com.tencentcloudapi.vod.v20180717.models.DeleteMediaRequest;
+import com.tencentcloudapi.vod.v20180717.models.DescribeMediaInfosRequest;
+import com.tencentcloudapi.vod.v20180717.models.DescribeMediaInfosResponse;
+import com.tencentcloudapi.vod.v20180717.models.MediaInfo;
+import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -36,6 +44,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -53,6 +63,9 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 
 	@Autowired
 	private VodConstantProperties vodConstantProperties;
+
+    @Resource
+    private UserInfoFeignClient userInfoFeignClient;
 
 	@SneakyThrows
 	@Override
@@ -176,6 +189,61 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 
 	@Override
 	public IPage<AlbumTrackListVo> findAlbumTrackPage(Long albumId, Long page, Long size) {
-		return trackInfoMapper.selectAlbumTrancPage(new Page<>(page, size), albumId);
+		IPage<AlbumTrackListVo> result = null;
+		IPage<AlbumTrackListVo> albumTrackListVoIPage = trackInfoMapper.selectAlbumTrancPage(new Page<>(page, size), albumId);
+		// 获取专辑的类型
+		AlbumInfo albumInfo = albumInfoMapper.selectById(albumId);
+		// 获取专辑的免费集数
+		Integer tracksForFree = albumInfo.getTracksForFree();
+		// 判断类型：0101-免费、0102-vip免费、0103-付费
+		switch (albumInfo.getPayType()) {
+			case SystemConstant.ALBUM_PAY_TYPE_FREE -> result = albumTrackListVoIPage;
+			case SystemConstant.ALBUM_PAY_TYPE_VIPFREE -> result = albumTrackVipFree(albumTrackListVoIPage, tracksForFree);
+			case SystemConstant.ALBUM_PAY_TYPE_REQUIRE -> result = albumTrackNotFree(albumTrackListVoIPage, tracksForFree, albumInfo.getPriceType(), albumId);
+		}
+		return result;
+	}
+
+	private IPage<AlbumTrackListVo> albumTrackVipFree(IPage<AlbumTrackListVo> albumTrackListVoIPage, Integer tracksForFree) {
+		List<AlbumTrackListVo> albumTrackListVoList = albumTrackListVoIPage.getRecords();
+		// 获取用户信息
+		Long userId = AuthContextHolder.getUserId();
+		UserInfo userInfo = userInfoFeignClient.getUserInfo(userId);
+		// 非vip用户，无法观看orderNum > tracksForFree
+		if (userInfo.getIsVip().equals(0)) {
+			List<AlbumTrackListVo> albumTrackListVoListNew = albumTrackListVoList.stream().peek(albumTrackListVo -> {
+				if (albumTrackListVo.getOrderNum() > tracksForFree) {
+					albumTrackListVo.setIsShowPaidMark(true);
+				}
+            }).toList();
+			albumTrackListVoIPage.setRecords(albumTrackListVoListNew);
+		}
+		return albumTrackListVoIPage;
+	}
+
+	private IPage<AlbumTrackListVo> albumTrackNotFree(IPage<AlbumTrackListVo> albumTrackListVoIPage, Integer tracksForFree, String priceType, Long albumId) {
+		List<AlbumTrackListVo> albumTrackListVoList = albumTrackListVoIPage.getRecords();
+		if (priceType.equals(SystemConstant.ALBUM_PRICE_TYPE_ONE)) {
+			// 单集购买
+			Map<String, String> userTrackIds = userInfoFeignClient.getUserTrackIds(albumId);
+			List<AlbumTrackListVo> albumTrackListVoListNew = albumTrackListVoList.stream().peek(albumTrackListVo -> {
+				if (albumTrackListVo.getOrderNum() > tracksForFree &&
+						StringUtils.isEmpty(userTrackIds.get(albumTrackListVo.getTrackId().toString()))) {
+					albumTrackListVo.setIsShowPaidMark(true);
+				}
+            }).toList();
+			albumTrackListVoIPage.setRecords(albumTrackListVoListNew);
+		} else {
+			// 整专购买
+			if (!userInfoFeignClient.getUserIsBuyAlbum(albumId)) {
+				List<AlbumTrackListVo> albumTrackListVoListNew = albumTrackListVoList.stream().peek(albumTrackListVo -> {
+					if (albumTrackListVo.getOrderNum() > tracksForFree) {
+						albumTrackListVo.setIsShowPaidMark(true);
+					}
+				}).toList();
+				albumTrackListVoIPage.setRecords(albumTrackListVoListNew);
+			}
+		}
+		return albumTrackListVoIPage;
 	}
 }
