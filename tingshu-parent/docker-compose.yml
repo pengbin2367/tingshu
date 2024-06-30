@@ -25,6 +25,14 @@ services:
       - /docker/tingshu/redis/redis.conf:/etc/redis/redis.conf
       - /docker/tingshu/redis/data:/data
     command: redis-server /etc/redis/redis.conf
+  ts-mongodb:
+    image: mongo
+    container_name: ts-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: tingshu
+      MONGO_INITDB_ROOT_PASSWORD: tingshu
   ts-nacos:
     image: nacos/nacos-server:v2.1.1
     container_name: ts-nacos
