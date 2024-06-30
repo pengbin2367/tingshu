@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.TimeUnit;
+
 @Service
 public class TestServiceImpl implements TestService {
 
@@ -13,7 +15,7 @@ public class TestServiceImpl implements TestService {
 
     @Override
     public synchronized void setRedis() {
-        Boolean lock = redisTemplate.opsForValue().setIfAbsent("lock", "setnx");
+        Boolean lock = redisTemplate.opsForValue().setIfAbsent("lock", "setnx", 1, TimeUnit.MINUTES);
         if (lock) {
             Integer redisValue = (Integer) redisTemplate.opsForValue().get("tingshu_test");
             if (redisValue != null) {
