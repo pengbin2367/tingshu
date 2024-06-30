@@ -13,10 +13,16 @@ public class TestServiceImpl implements TestService {
 
     @Override
     public synchronized void setRedis() {
-        Integer redisValue = (Integer) redisTemplate.opsForValue().get("tingshu_test");
-        if (redisValue != null) {
-            redisValue++;
-            redisTemplate.opsForValue().set("tingshu_test", redisValue);
+        Boolean lock = redisTemplate.opsForValue().setIfAbsent("lock", "setnx");
+        if (lock) {
+            Integer redisValue = (Integer) redisTemplate.opsForValue().get("tingshu_test");
+            if (redisValue != null) {
+                redisValue++;
+                redisTemplate.opsForValue().set("tingshu_test", redisValue);
+            }
+            redisTemplate.delete("lock");
+        } else {
+            setRedis();
         }
     }
 }
