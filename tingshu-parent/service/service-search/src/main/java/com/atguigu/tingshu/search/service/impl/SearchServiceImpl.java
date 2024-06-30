@@ -13,7 +13,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
 import com.atguigu.tingshu.album.client.CategoryFeignClient;
 import com.atguigu.tingshu.common.constant.SystemConstant;
-import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
@@ -40,6 +39,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -60,6 +62,9 @@ public class SearchServiceImpl implements SearchService {
 
     @Autowired
     private ElasticsearchClient elasticsearchClient;
+
+    @Autowired
+    private ThreadPoolExecutor threadPoolExecutor;
 
     @SneakyThrows
     @Override
@@ -119,32 +124,41 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public JSONObject getAlbumDetails(Long albumId) {
-        JSONObject result = new JSONObject();
+    public Map<String, Object> getAlbumDetails(Long albumId) {
+        Map<String, Object> result = new ConcurrentHashMap<>();
         // 获取专辑详情
-        AlbumInfo albumInfo = albumInfoFeignClient.getAlbumInfo(albumId);
-        if (albumInfo == null || albumInfo.getId() == null) {
-            throw new GuiguException(201, "专辑不存在");
-        }
+        CompletableFuture<AlbumInfo> albumInfoCompletableFuture = CompletableFuture.supplyAsync(() -> {
+            AlbumInfo albumInfo = albumInfoFeignClient.getAlbumInfo(albumId);
+            if (albumInfo == null || albumInfo.getId() == null) {
+                return null;
+            }
+            result.put("albumInfo", albumInfo);
+            return albumInfo;
+        }, threadPoolExecutor);
         // 获取专辑统计信息
-        Map<String, Integer> albumStatInfo = albumInfoFeignClient.getAlbumStatInfo(albumId);
-        AlbumStatVo albumStatVo = new AlbumStatVo();
-        albumStatVo.setAlbumId(albumId);
-        albumStatVo.setPlayStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_PLAY));
-        albumStatVo.setSubscribeStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_SUBSCRIBE));
-        albumStatVo.setBuyStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_BROWSE));
-        albumStatVo.setCommentStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_COMMENT));
+        CompletableFuture<Void> albumStatCompletableFuture = CompletableFuture.runAsync(() -> {
+            Map<String, Integer> albumStatInfo = albumInfoFeignClient.getAlbumStatInfo(albumId);
+            AlbumStatVo albumStatVo = new AlbumStatVo();
+            albumStatVo.setAlbumId(albumId);
+            albumStatVo.setPlayStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_PLAY));
+            albumStatVo.setSubscribeStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_SUBSCRIBE));
+            albumStatVo.setBuyStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_BROWSE));
+            albumStatVo.setCommentStatNum(albumStatInfo.get(SystemConstant.ALBUM_STAT_COMMENT));
+            result.put("albumStatVo", albumStatVo);
+        }, threadPoolExecutor);
         // 获取专辑分类信息
-        BaseCategoryView baseCategoryView = categoryFeignClient.getBaseCategoryView(albumInfo.getCategory3Id());
+        CompletableFuture<Void> categoryCompletableFuture = albumInfoCompletableFuture.thenAcceptAsync(albumInfo -> {
+            BaseCategoryView baseCategoryView = categoryFeignClient.getBaseCategoryView(albumInfo.getCategory3Id());
+            result.put("baseCategoryView", baseCategoryView);
+        }, threadPoolExecutor);
         // 获取作者信息
-        UserInfo userInfo = userInfoFeignClient.getUserInfo(albumInfo.getUserId());
-        UserInfoVo userInfoVo = new UserInfoVo();
-        BeanUtils.copyProperties(userInfo, userInfoVo);
-
-        result.put("albumInfo", albumInfo);
-        result.put("albumStatVo", albumStatVo);
-        result.put("baseCategoryView", baseCategoryView);
-        result.put("announcer", userInfoVo);
+        CompletableFuture<Void> userInfoCompletableFuture = albumInfoCompletableFuture.thenAcceptAsync(albumInfo -> {
+            UserInfo userInfo = userInfoFeignClient.getUserInfo(albumInfo.getUserId());
+            UserInfoVo userInfoVo = new UserInfoVo();
+            BeanUtils.copyProperties(userInfo, userInfoVo);
+            result.put("announcer", userInfoVo);
+        }, threadPoolExecutor);
+        CompletableFuture.allOf(albumStatCompletableFuture, categoryCompletableFuture, userInfoCompletableFuture).join();
         return result;
     }
 

@@ -1,12 +1,13 @@
 package com.atguigu.tingshu.search.api;
 
-import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.service.SearchService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @Tag(name = "搜索专辑管理")
 @RestController
@@ -33,7 +34,7 @@ public class SearchApiController {
     }
 
     @GetMapping("/{albumId}")
-    public Result<JSONObject> getAlbumDetails(@PathVariable(value = "albumId") Long albumId) {
+    public Result<Map<String, Object>> getAlbumDetails(@PathVariable(value = "albumId") Long albumId) {
         return Result.ok(searchService.getAlbumDetails(albumId));
     }
 }

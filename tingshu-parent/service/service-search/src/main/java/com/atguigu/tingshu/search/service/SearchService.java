@@ -1,7 +1,8 @@
 package com.atguigu.tingshu.search.service;
 
-import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
+
+import java.util.Map;
 
 public interface SearchService {
 
@@ -11,5 +12,5 @@ public interface SearchService {
 
     Object completeSuggest(String keywords);
 
-    JSONObject getAlbumDetails(Long albumId);
+    Map<String, Object> getAlbumDetails(Long albumId);
 }
