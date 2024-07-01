@@ -10,6 +10,9 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+import java.util.Map;
+
 public interface TrackInfoService extends IService<TrackInfo> {
 
     JSONObject uploadTrack(MultipartFile file);
@@ -23,4 +26,6 @@ public interface TrackInfoService extends IService<TrackInfo> {
     void updateTrackInfo(Long id, TrackInfoVo trackInfoVo);
 
     IPage<AlbumTrackListVo> findAlbumTrackPage(Long albumId, Long page, Long size);
+
+    List<Map<String, Object>> findUserTrackPaidList(Long trackId);
 }

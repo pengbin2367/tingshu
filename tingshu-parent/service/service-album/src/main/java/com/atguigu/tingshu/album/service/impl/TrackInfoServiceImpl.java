@@ -44,6 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -202,6 +203,54 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 			case SystemConstant.ALBUM_PAY_TYPE_REQUIRE -> result = albumTrackNotFree(albumTrackListVoIPage, tracksForFree, albumInfo.getPriceType(), albumId);
 		}
 		return result;
+	}
+
+	@Override
+	public List<Map<String, Object>> findUserTrackPaidList(Long trackId) {
+		// 获取用户拥有的对应专辑下所有声音
+		TrackInfo trackInfo = trackInfoMapper.selectById(trackId);
+		Long albumId = trackInfo.getAlbumId();
+		Map<String, String> userTrackIds = userInfoFeignClient.getUserTrackIds(albumId);
+		// 获取大于当前的全部声音
+		List<TrackInfo> trackInfos = trackInfoMapper.selectList(new LambdaQueryWrapper<TrackInfo>().eq(TrackInfo::getAlbumId, albumId)
+				.gt(TrackInfo::getOrderNum, trackInfo.getOrderNum()));
+		// 去除已经支付过的
+		List<Long> trackIds = trackInfos.stream().map(TrackInfo::getId)
+				.filter(t -> StringUtils.isEmpty(userTrackIds.get(t.toString())))
+				.limit(50).toList();
+		// 构造声音分集购买数据
+		List<Map<String, Object>> resultList = new ArrayList<>();
+		JSONObject result = new JSONObject();
+		BigDecimal price = albumInfoMapper.selectById(albumId).getPrice();
+		result.put("name", "本集");
+		result.put("price", price);
+		result.put("trackCount", 1);
+		resultList.add(result);
+		// 未购买的声音总数
+		int size = trackIds.size();
+		// 定义区间大小
+		int range = 10;
+		// 后面总共有几个购买区间
+		int total = size % range == 0 ? size / range : size / range + 1;
+		// 集数计数器
+		int num = 0;
+		// 遍历构建剩余区间
+		for (int i = 1; i <= total; i++) {
+			result = new JSONObject();
+			num = i * range;
+			if (num >= size) {
+				result.put("name", "后" + size + "集");
+				result.put("price", price.multiply(new BigDecimal(size)));
+				result.put("trackCount", size + 1);
+				resultList.add(result);
+				break;
+			}
+			result.put("name", "后" + num + "集");
+			result.put("price", price.multiply(new BigDecimal(num)));
+			result.put("trackCount", num + 1);
+			resultList.add(result);
+		}
+		return resultList;
 	}
 
 	private IPage<AlbumTrackListVo> albumTrackVipFree(IPage<AlbumTrackListVo> albumTrackListVoIPage, Integer tracksForFree) {

@@ -17,6 +17,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+import java.util.Map;
+
 @Tag(name = "声音管理")
 @RestController
 @RequestMapping("/api/album/trackInfo")
@@ -77,6 +80,12 @@ public class TrackInfoApiController {
 															  @PathVariable(value = "page") Long page,
 															  @PathVariable(value = "size") Long size){
 		return Result.ok(trackInfoService.findAlbumTrackPage(albumId, page, size));
+	}
+
+	@GuiguLogin
+	@GetMapping("/findUserTrackPaidList/{trackId}")
+	public Result<List<Map<String, Object>>> findUserTrackPaidList(@PathVariable Long trackId) {
+		return Result.ok(trackInfoService.findUserTrackPaidList(trackId));
 	}
 }
 
