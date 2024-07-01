@@ -16,7 +16,7 @@ public class TestApiController {
 
     @GetMapping("/test")
     public Result testSetRedis() {
-        testService.setRedis();
+        testService.setRedisson();
         return Result.ok();
     }
 }

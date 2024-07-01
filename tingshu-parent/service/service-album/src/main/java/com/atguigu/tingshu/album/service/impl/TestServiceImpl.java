@@ -1,6 +1,8 @@
 package com.atguigu.tingshu.album.service.impl;
 
 import com.atguigu.tingshu.album.service.TestService;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -15,6 +17,9 @@ public class TestServiceImpl implements TestService {
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    private RedissonClient redissonClient;
 
     @Override
     public synchronized void setRedis() {
@@ -36,6 +41,28 @@ public class TestServiceImpl implements TestService {
 //            }
         } else {
             setRedis();
+        }
+    }
+
+    @Override
+    public void setRedisson() {
+        RLock lock = redissonClient.getLock("lock");
+        try {
+            if (lock.tryLock(10, 1, TimeUnit.MINUTES)) {
+                try {
+                    Integer redisValue = (Integer) redisTemplate.opsForValue().get("tingshu_test");
+                    if (redisValue != null) {
+                        redisValue++;
+                        redisTemplate.opsForValue().set("tingshu_test", redisValue);
+                    }
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                } finally {
+                    lock.unlock();
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }
