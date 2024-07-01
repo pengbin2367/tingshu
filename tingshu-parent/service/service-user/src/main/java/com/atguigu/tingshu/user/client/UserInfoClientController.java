@@ -1,5 +1,6 @@
 package com.atguigu.tingshu.user.client;
 
+import com.atguigu.tingshu.common.cache.GuiguCache;
 import com.atguigu.tingshu.common.login.GuiguLogin;
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.user.service.UserInfoService;
@@ -18,6 +19,7 @@ public class UserInfoClientController {
     @Autowired
     private UserInfoService userInfoService;
 
+    @GuiguCache(prefix = "getUserInfo:")
     @GetMapping("/getUserInfo/{userId}")
     public UserInfo getUserInfo(@PathVariable(value = "userId") Long userId) {
         return userInfoService.getById(userId);
