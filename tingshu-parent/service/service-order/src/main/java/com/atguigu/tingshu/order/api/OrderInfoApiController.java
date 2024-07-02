@@ -3,6 +3,7 @@ package com.atguigu.tingshu.order.api;
 import com.atguigu.tingshu.common.login.GuiguLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.order.service.OrderInfoService;
+import com.atguigu.tingshu.vo.order.OrderInfoVo;
 import com.atguigu.tingshu.vo.order.TradeVo;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @Tag(name = "订单管理")
 @RestController
@@ -24,6 +27,12 @@ public class OrderInfoApiController {
 	@PostMapping("/trade")
 	public Result trade(@RequestBody TradeVo tradeVo) {
 		return Result.ok(orderInfoService.trade(tradeVo));
+	}
+
+	@GuiguLogin
+	@PostMapping("/submitOrder")
+	public Result<Map<String, Object>> submitOrder(@RequestBody OrderInfoVo orderInfoVo) {
+		return Result.ok(orderInfoService.submitOrder(orderInfoVo));
 	}
 }
 

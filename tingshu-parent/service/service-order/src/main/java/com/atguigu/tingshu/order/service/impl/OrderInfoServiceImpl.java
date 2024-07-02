@@ -8,9 +8,13 @@ import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.TrackInfo;
+import com.atguigu.tingshu.model.order.OrderDerate;
+import com.atguigu.tingshu.model.order.OrderDetail;
 import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.model.user.VipServiceConfig;
+import com.atguigu.tingshu.order.mapper.OrderDerateMapper;
+import com.atguigu.tingshu.order.mapper.OrderDetailMapper;
 import com.atguigu.tingshu.order.mapper.OrderInfoMapper;
 import com.atguigu.tingshu.order.service.OrderInfoService;
 import com.atguigu.tingshu.user.client.UserInfoFeignClient;
@@ -22,16 +26,20 @@ import com.atguigu.tingshu.vo.order.TradeVo;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
+import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -57,6 +65,12 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Autowired
     private RSAPrivateKey rsaPrivateKey;
 
+    @Autowired
+    private OrderDetailMapper orderDetailMapper;
+
+    @Autowired
+    private OrderDerateMapper orderDerateMapper;
+
     @Override
     public Object trade(TradeVo tradeVo) {
         OrderInfoVo result = new OrderInfoVo();
@@ -69,6 +83,65 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         Jwt encode = JwtHelper.encode(JSONObject.toJSONString(result), new RsaSigner(rsaPrivateKey));
         result.setSign(encode.getEncoded());
         return result;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public Map<String, Object> submitOrder(OrderInfoVo orderInfoVo) {
+        try {
+            String sign = orderInfoVo.getSign();
+            Jwt jwt = JwtHelper.decodeAndVerify(sign, new RsaVerifier(SystemConstant.PUBLIC_KEY));
+            String payWay = orderInfoVo.getPayWay();
+            if (payWay.equals(SystemConstant.ORDER_PAY_ACCOUNT)) {
+                // TODO 余额扣款
+            }
+            String claims = jwt.getClaims();
+            orderInfoVo = JSONObject.parseObject(claims, OrderInfoVo.class);
+
+            OrderInfo orderInfo = new OrderInfo();
+            BeanUtils.copyProperties(orderInfoVo, orderInfo);
+            orderInfo.setUserId(AuthContextHolder.getUserId());
+            orderInfo.setOrderNo(orderInfoVo.getTradeNo());
+            orderInfo.setPayWay(payWay);
+            String itemType = orderInfoVo.getItemType();
+            switch (itemType) {
+                case SystemConstant.ORDER_ITEM_TYPE_ALBUM -> orderInfo.setOrderTitle("购买【" + orderInfoVo.getOrderDetailVoList().get(0).getItemName() + "】专辑");
+                case SystemConstant.ORDER_ITEM_TYPE_TRACK -> orderInfo.setOrderTitle("购买【" + orderInfoVo.getOrderDetailVoList().get(0).getItemName() + "】等声音");
+                case SystemConstant.ORDER_ITEM_TYPE_VIP -> orderInfo.setOrderTitle("购买【" + orderInfoVo.getOrderDetailVoList().get(0).getItemName() + "】会员");
+            }
+            if (!save(orderInfo)) {
+                throw new GuiguException(201, "保存订单信息失败");
+            }
+            Long orderId = orderInfo.getId();
+
+            orderInfoVo.getOrderDetailVoList().stream().forEach(orderDetailVo -> {
+                OrderDetail orderDetail = new OrderDetail();
+                BeanUtils.copyProperties(orderDetailVo, orderDetail);
+                orderDetail.setOrderId(orderId);
+                int insert = orderDetailMapper.insert(orderDetail);
+                if (insert <= 0) {
+                    throw new GuiguException(201, "保存订单详情失败");
+                }
+            });
+
+            orderInfoVo.getOrderDerateVoList().stream().forEach(orderDerateVo -> {
+                OrderDerate orderDerate = new OrderDerate();
+                BeanUtils.copyProperties(orderDerateVo, orderDerate);
+                orderDerate.setOrderId(orderId);
+                int insert = orderDerateMapper.insert(orderDerate);
+                if (insert <= 0) {
+                    throw new GuiguException(201, "保存订单折扣信息失败");
+                }
+            });
+
+            JSONObject result = new JSONObject();
+            result.put("orderNo", orderInfo.getOrderNo());
+            return result;
+        } catch (GuiguException g) {
+            throw g;
+        } catch (Exception e) {
+            throw new GuiguException(201, "参数不合法，下单失败");
+        }
     }
 
     private OrderInfoVo tradeVip(TradeVo tradeVo) {
