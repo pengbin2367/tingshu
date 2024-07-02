@@ -1,5 +1,6 @@
 package com.atguigu.tingshu.order.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
 import com.atguigu.tingshu.album.client.TrackInfoFeignClient;
 import com.atguigu.tingshu.common.constant.SystemConstant;
@@ -22,9 +23,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.jwt.Jwt;
+import org.springframework.security.jwt.JwtHelper;
+import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -49,6 +54,9 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Resource
     private TrackInfoFeignClient trackInfoFeignClient;
 
+    @Autowired
+    private RSAPrivateKey rsaPrivateKey;
+
     @Override
     public Object trade(TradeVo tradeVo) {
         OrderInfoVo result = new OrderInfoVo();
@@ -58,6 +66,8 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             case SystemConstant.ORDER_ITEM_TYPE_TRACK -> result = tradeTrack(tradeVo);
             case SystemConstant.ORDER_ITEM_TYPE_VIP -> result = tradeVip(tradeVo);
         }
+        Jwt encode = JwtHelper.encode(JSONObject.toJSONString(result), new RsaSigner(rsaPrivateKey));
+        result.setSign(encode.getEncoded());
         return result;
     }
 
@@ -94,8 +104,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
         orderInfoVo.setOrderDerateVoList(orderDerateVoList);
         orderInfoVo.setTimestamp(System.currentTimeMillis());
-        // TODO 签名
-        orderInfoVo.setSign("");
         return orderInfoVo;
     }
 
@@ -129,8 +137,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         orderInfoVo.setOrderDerateVoList(orderDerateVoList);
 
         orderInfoVo.setTimestamp(System.currentTimeMillis());
-        // TODO 签名
-        orderInfoVo.setSign("");
         return orderInfoVo;
     }
 
@@ -184,8 +190,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
         orderInfoVo.setOrderDerateVoList(orderDerateVoList);
         orderInfoVo.setTimestamp(System.currentTimeMillis());
-        // TODO 签名
-        orderInfoVo.setSign("");
         return orderInfoVo;
     }
 }
