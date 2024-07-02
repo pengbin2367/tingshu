@@ -1,10 +1,16 @@
 package com.atguigu.tingshu.order.service.impl;
 
+import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
 import com.atguigu.tingshu.common.constant.SystemConstant;
+import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.order.OrderInfo;
+import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.model.user.VipServiceConfig;
 import com.atguigu.tingshu.order.mapper.OrderInfoMapper;
 import com.atguigu.tingshu.order.service.OrderInfoService;
+import com.atguigu.tingshu.user.client.UserInfoFeignClient;
 import com.atguigu.tingshu.user.client.VipServiceConfigFeignClient;
 import com.atguigu.tingshu.vo.order.OrderDerateVo;
 import com.atguigu.tingshu.vo.order.OrderDetailVo;
@@ -31,6 +37,12 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
     @Resource
     private VipServiceConfigFeignClient vipServiceConfigFeignClient;
+
+    @Resource
+    private AlbumInfoFeignClient albumInfoFeignClient;
+
+    @Resource
+    private UserInfoFeignClient userInfoFeignClient;
 
     @Override
     public Object trade(TradeVo tradeVo) {
@@ -87,6 +99,57 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     }
 
     private OrderInfoVo tradeAlbum(TradeVo tradeVo) {
-        return null;
+        OrderInfoVo orderInfoVo = new OrderInfoVo();
+        Long albumId = tradeVo.getItemId();
+        // 用户已经购买过本专辑，不可重复购买
+        if (userInfoFeignClient.getUserIsBuyAlbum(albumId)) {
+            throw new GuiguException(201, "您已经购买过本专辑了，无需重复购买");
+        }
+
+        orderInfoVo.setTradeNo(UUID.randomUUID().toString().replaceAll("-", ""));
+        orderInfoVo.setItemType(SystemConstant.ORDER_ITEM_TYPE_ALBUM);
+
+        AlbumInfo albumInfo = albumInfoFeignClient.getAlbumInfo(albumId);
+        UserInfo userInfo = userInfoFeignClient.getUserInfo(AuthContextHolder.getUserId());
+        Integer isVip = userInfo.getIsVip();
+
+        // 原价
+        BigDecimal price = albumInfo.getPrice();
+        BigDecimal divide = null;
+        if (isVip == 0) {
+            // 普通折扣
+            BigDecimal discount = albumInfo.getDiscount().intValue() == -1 ? BigDecimal.valueOf(10) : albumInfo.getDiscount();
+            // 折后价
+            divide = price.multiply(discount).divide(BigDecimal.valueOf(10));
+        } else {
+            // 会员折扣
+            BigDecimal vipDiscount = albumInfo.getVipDiscount().intValue() == -1 ? BigDecimal.valueOf(10) : albumInfo.getVipDiscount();
+            divide = price.multiply(vipDiscount).divide(BigDecimal.valueOf(10));
+        }
+        orderInfoVo.setOriginalAmount(price);
+        orderInfoVo.setDerateAmount(price.subtract(divide));
+        orderInfoVo.setOrderAmount(divide);
+
+        List<OrderDetailVo> orderDetailVoList = new ArrayList<>();
+        OrderDetailVo orderDetailVo = new OrderDetailVo();
+        orderDetailVo.setItemId(albumId);
+        orderDetailVo.setItemName(albumInfo.getAlbumTitle());
+        orderDetailVo.setItemUrl(albumInfo.getCoverUrl());
+        orderDetailVo.setItemPrice(divide);
+        orderDetailVoList.add(orderDetailVo);
+        orderInfoVo.setOrderDetailVoList(orderDetailVoList);
+
+        List<OrderDerateVo> orderDerateVoList = new ArrayList<>();
+        OrderDerateVo orderDerateVo = new OrderDerateVo();
+        orderDerateVo.setDerateAmount(price.subtract(divide));
+        orderDerateVo.setDerateType(SystemConstant.ORDER_DERATE_ALBUM_DISCOUNT);
+        orderDerateVo.setRemarks("专辑购买折扣！");
+        orderDerateVoList.add(orderDerateVo);
+
+        orderInfoVo.setOrderDerateVoList(orderDerateVoList);
+        orderInfoVo.setTimestamp(System.currentTimeMillis());
+        // TODO 签名
+        orderInfoVo.setSign("");
+        return orderInfoVo;
     }
 }
