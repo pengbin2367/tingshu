@@ -1,10 +1,12 @@
 package com.atguigu.tingshu.order.service.impl;
 
 import com.atguigu.tingshu.album.client.AlbumInfoFeignClient;
+import com.atguigu.tingshu.album.client.TrackInfoFeignClient;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.AlbumInfo;
+import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.model.user.VipServiceConfig;
@@ -43,6 +45,9 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
     @Resource
     private UserInfoFeignClient userInfoFeignClient;
+
+    @Resource
+    private TrackInfoFeignClient trackInfoFeignClient;
 
     @Override
     public Object trade(TradeVo tradeVo) {
@@ -95,7 +100,38 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     }
 
     private OrderInfoVo tradeTrack(TradeVo tradeVo) {
-        return null;
+        OrderInfoVo orderInfoVo = new OrderInfoVo();
+        Long trackId = tradeVo.getItemId();
+
+        orderInfoVo.setTradeNo(UUID.randomUUID().toString().replaceAll("-", ""));
+        orderInfoVo.setItemType(SystemConstant.ORDER_ITEM_TYPE_TRACK);
+
+        AlbumInfo albumInfo = albumInfoFeignClient.getAlbumInfoByTrackId(trackId);
+        Integer trackCount = tradeVo.getTrackCount();
+        List<TrackInfo> trackPaidList = trackInfoFeignClient.getTrackPaidList(trackId, trackCount);
+
+        BigDecimal price = albumInfo.getPrice();
+        orderInfoVo.setOriginalAmount(price.multiply(new BigDecimal(trackCount)));
+        orderInfoVo.setDerateAmount(new BigDecimal(0));
+        orderInfoVo.setOrderAmount(price.multiply(new BigDecimal(trackCount)));
+
+        List<OrderDetailVo> orderDetailVoList = trackPaidList.stream().map(trackInfo -> {
+            OrderDetailVo orderDetailVo = new OrderDetailVo();
+            orderDetailVo.setItemId(trackInfo.getId());
+            orderDetailVo.setItemName(trackInfo.getTrackTitle());
+            orderDetailVo.setItemUrl(trackInfo.getCoverUrl());
+            orderDetailVo.setItemPrice(price);
+            return orderDetailVo;
+        }).toList();
+        orderInfoVo.setOrderDetailVoList(orderDetailVoList);
+
+        List<OrderDerateVo> orderDerateVoList = new ArrayList<>();
+        orderInfoVo.setOrderDerateVoList(orderDerateVoList);
+
+        orderInfoVo.setTimestamp(System.currentTimeMillis());
+        // TODO 签名
+        orderInfoVo.setSign("");
+        return orderInfoVo;
     }
 
     private OrderInfoVo tradeAlbum(TradeVo tradeVo) {

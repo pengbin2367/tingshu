@@ -295,4 +295,16 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 		}
 		return albumTrackListVoIPage;
 	}
+
+	@Override
+	public List<TrackInfo> getTrackPaidList(Long trackId, Integer trackCount) {
+		TrackInfo trackInfo = getById(trackId);
+		List<TrackInfo> trackInfos = trackInfoMapper.selectList(new LambdaQueryWrapper<TrackInfo>()
+				.eq(TrackInfo::getAlbumId, trackInfo.getAlbumId())
+				.ge(TrackInfo::getOrderNum, trackInfo.getOrderNum()));
+		Map<String, String> userTrackIds = userInfoFeignClient.getUserTrackIds(trackInfo.getAlbumId());
+		return trackInfos.stream().filter(
+				f -> StringUtils.isEmpty(userTrackIds.get(f.getId().toString()))
+		).limit(trackCount).toList();
+	}
 }

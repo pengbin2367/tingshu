@@ -28,4 +28,6 @@ public interface TrackInfoService extends IService<TrackInfo> {
     IPage<AlbumTrackListVo> findAlbumTrackPage(Long albumId, Long page, Long size);
 
     List<Map<String, Object>> findUserTrackPaidList(Long trackId);
+
+    List<TrackInfo> getTrackPaidList(Long trackId, Integer trackCount);
 }

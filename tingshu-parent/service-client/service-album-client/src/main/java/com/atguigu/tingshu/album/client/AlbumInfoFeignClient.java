@@ -27,4 +27,7 @@ public interface AlbumInfoFeignClient {
 
     @GetMapping("/getAlbumAttributeValue/{albumId}")
     public List<AlbumAttributeValue> getAlbumAttributeValue(@PathVariable(value = "albumId") Long albumId);
+
+    @GetMapping("/getAlbumInfoByTrackId/{trackId}")
+    public AlbumInfo getAlbumInfoByTrackId(@PathVariable(value = "trackId") Long trackId);
 }
