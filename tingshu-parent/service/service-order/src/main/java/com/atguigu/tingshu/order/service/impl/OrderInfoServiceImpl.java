@@ -26,6 +26,8 @@ import com.atguigu.tingshu.vo.order.TradeVo;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.jwt.Jwt;
@@ -71,9 +73,14 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Autowired
     private OrderDerateMapper orderDerateMapper;
 
+    @Autowired
+    private RedissonClient redissonClient;
+
     @Override
     public Object trade(TradeVo tradeVo) {
         OrderInfoVo result = new OrderInfoVo();
+
+        // TODO 校验未支付订单中是否包含当前购买的内容
 
         switch (tradeVo.getItemType()) {
             case SystemConstant.ORDER_ITEM_TYPE_ALBUM -> result = tradeAlbum(tradeVo);
@@ -88,60 +95,75 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Transactional(rollbackFor = Exception.class)
     @Override
     public Map<String, Object> submitOrder(OrderInfoVo orderInfoVo) {
+        Long userId = AuthContextHolder.getUserId();
+        RLock lock = redissonClient.getLock("User_Submit_Order_Lock_" + userId);
         try {
-            String sign = orderInfoVo.getSign();
-            Jwt jwt = JwtHelper.decodeAndVerify(sign, new RsaVerifier(SystemConstant.PUBLIC_KEY));
-            String payWay = orderInfoVo.getPayWay();
-            if (payWay.equals(SystemConstant.ORDER_PAY_ACCOUNT)) {
-                // TODO 余额扣款
-            }
-            String claims = jwt.getClaims();
-            orderInfoVo = JSONObject.parseObject(claims, OrderInfoVo.class);
+            if (lock.tryLock()) {
+                try {
+                    String sign = orderInfoVo.getSign();
+                    Jwt jwt = JwtHelper.decodeAndVerify(sign, new RsaVerifier(SystemConstant.PUBLIC_KEY));
+                    // TODO 场景校验（订单是否存在未支付/已支付）
+                    String payWay = orderInfoVo.getPayWay();
+                    if (payWay.equals(SystemConstant.ORDER_PAY_ACCOUNT)) {
+                        // TODO 余额扣款
+                    }
+                    String claims = jwt.getClaims();
+                    orderInfoVo = JSONObject.parseObject(claims, OrderInfoVo.class);
 
-            OrderInfo orderInfo = new OrderInfo();
-            BeanUtils.copyProperties(orderInfoVo, orderInfo);
-            orderInfo.setUserId(AuthContextHolder.getUserId());
-            orderInfo.setOrderNo(orderInfoVo.getTradeNo());
-            orderInfo.setPayWay(payWay);
-            String itemType = orderInfoVo.getItemType();
-            switch (itemType) {
-                case SystemConstant.ORDER_ITEM_TYPE_ALBUM -> orderInfo.setOrderTitle("购买【" + orderInfoVo.getOrderDetailVoList().get(0).getItemName() + "】专辑");
-                case SystemConstant.ORDER_ITEM_TYPE_TRACK -> orderInfo.setOrderTitle("购买【" + orderInfoVo.getOrderDetailVoList().get(0).getItemName() + "】等声音");
-                case SystemConstant.ORDER_ITEM_TYPE_VIP -> orderInfo.setOrderTitle("购买【" + orderInfoVo.getOrderDetailVoList().get(0).getItemName() + "】会员");
-            }
-            if (!save(orderInfo)) {
-                throw new GuiguException(201, "保存订单信息失败");
-            }
-            Long orderId = orderInfo.getId();
+                    OrderInfo orderInfo = new OrderInfo();
+                    BeanUtils.copyProperties(orderInfoVo, orderInfo);
+                    orderInfo.setUserId(userId);
+                    orderInfo.setOrderNo(orderInfoVo.getTradeNo());
+                    orderInfo.setPayWay(payWay);
+                    String itemType = orderInfoVo.getItemType();
+                    switch (itemType) {
+                        case SystemConstant.ORDER_ITEM_TYPE_ALBUM -> orderInfo.setOrderTitle("购买【" + orderInfoVo.getOrderDetailVoList().get(0).getItemName() + "】专辑");
+                        case SystemConstant.ORDER_ITEM_TYPE_TRACK -> orderInfo.setOrderTitle("购买【" + orderInfoVo.getOrderDetailVoList().get(0).getItemName() + "】等声音");
+                        case SystemConstant.ORDER_ITEM_TYPE_VIP -> orderInfo.setOrderTitle("购买【" + orderInfoVo.getOrderDetailVoList().get(0).getItemName() + "】会员");
+                    }
+                    if (!save(orderInfo)) {
+                        throw new GuiguException(201, "保存订单信息失败");
+                    }
+                    Long orderId = orderInfo.getId();
 
-            orderInfoVo.getOrderDetailVoList().stream().forEach(orderDetailVo -> {
-                OrderDetail orderDetail = new OrderDetail();
-                BeanUtils.copyProperties(orderDetailVo, orderDetail);
-                orderDetail.setOrderId(orderId);
-                int insert = orderDetailMapper.insert(orderDetail);
-                if (insert <= 0) {
-                    throw new GuiguException(201, "保存订单详情失败");
+                    orderInfoVo.getOrderDetailVoList().stream().forEach(orderDetailVo -> {
+                        OrderDetail orderDetail = new OrderDetail();
+                        BeanUtils.copyProperties(orderDetailVo, orderDetail);
+                        orderDetail.setOrderId(orderId);
+                        int insert = orderDetailMapper.insert(orderDetail);
+                        if (insert <= 0) {
+                            throw new GuiguException(201, "保存订单详情失败");
+                        }
+                    });
+
+                    orderInfoVo.getOrderDerateVoList().stream().forEach(orderDerateVo -> {
+                        OrderDerate orderDerate = new OrderDerate();
+                        BeanUtils.copyProperties(orderDerateVo, orderDerate);
+                        orderDerate.setOrderId(orderId);
+                        int insert = orderDerateMapper.insert(orderDerate);
+                        if (insert <= 0) {
+                            throw new GuiguException(201, "保存订单折扣信息失败");
+                        }
+                    });
+
+                    JSONObject result = new JSONObject();
+                    result.put("orderNo", orderInfo.getOrderNo());
+
+                    // TODO 发送延迟消息，开始倒计时（非余额支付）
+
+                    return result;
+                } catch (Exception e) {
+                    log.error("下单逻辑异常，原因是：{}", e.getMessage());
+                } finally {
+                    lock.unlock();
                 }
-            });
-
-            orderInfoVo.getOrderDerateVoList().stream().forEach(orderDerateVo -> {
-                OrderDerate orderDerate = new OrderDerate();
-                BeanUtils.copyProperties(orderDerateVo, orderDerate);
-                orderDerate.setOrderId(orderId);
-                int insert = orderDerateMapper.insert(orderDerate);
-                if (insert <= 0) {
-                    throw new GuiguException(201, "保存订单折扣信息失败");
-                }
-            });
-
-            JSONObject result = new JSONObject();
-            result.put("orderNo", orderInfo.getOrderNo());
-            return result;
-        } catch (GuiguException g) {
-            throw g;
+            } else {
+                throw new GuiguException(201, "并发下单失败，请重试");
+            }
         } catch (Exception e) {
-            throw new GuiguException(201, "参数不合法，下单失败");
+            log.error("下单失败，原因是：{}", e.getMessage());
         }
+        return null;
     }
 
     private OrderInfoVo tradeVip(TradeVo tradeVo) {
