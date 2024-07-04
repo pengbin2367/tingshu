@@ -8,6 +8,7 @@ import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.TrackInfo;
+import com.atguigu.tingshu.model.base.BaseEntity;
 import com.atguigu.tingshu.model.order.OrderDerate;
 import com.atguigu.tingshu.model.order.OrderDetail;
 import com.atguigu.tingshu.model.order.OrderInfo;
@@ -23,6 +24,7 @@ import com.atguigu.tingshu.vo.order.OrderDerateVo;
 import com.atguigu.tingshu.vo.order.OrderDetailVo;
 import com.atguigu.tingshu.vo.order.OrderInfoVo;
 import com.atguigu.tingshu.vo.order.TradeVo;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -39,10 +41,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -80,7 +80,8 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     public Object trade(TradeVo tradeVo) {
         OrderInfoVo result = new OrderInfoVo();
 
-        // TODO 校验未支付订单中是否包含当前购买的内容
+        // 校验未支付订单中是否包含当前购买的内容
+        checkOrder(tradeVo);
 
         switch (tradeVo.getItemType()) {
             case SystemConstant.ORDER_ITEM_TYPE_ALBUM -> result = tradeAlbum(tradeVo);
@@ -90,6 +91,42 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         Jwt encode = JwtHelper.encode(JSONObject.toJSONString(result), new RsaSigner(rsaPrivateKey));
         result.setSign(encode.getEncoded());
         return result;
+    }
+
+    private void checkOrder(TradeVo tradeVo) {
+        Long userId = AuthContextHolder.getUserId();
+        Long itemId = tradeVo.getItemId();
+        switch (tradeVo.getItemType()) {
+            case SystemConstant.ORDER_ITEM_TYPE_ALBUM -> {
+                // 查询所有已支付/未支付专辑中是否包含当前要购买的专辑
+                int count = orderInfoMapper.selectAlbumOrderCount(userId, itemId);
+                if (count > 0) {
+                    throw new GuiguException(201, "专辑已经购买过或存在未支付的该专辑订单，请确认后处理");
+                }
+            }
+            case SystemConstant.ORDER_ITEM_TYPE_TRACK -> {
+                // 获取当前要购买的声音集合A
+                Set<Long> trackIds = trackInfoFeignClient.getTrackPaidList(itemId, tradeVo.getTrackCount()).stream().map(BaseEntity::getId).collect(Collectors.toSet());
+                // 获取当前未支付的声音集合B
+                Set<Long> list = orderInfoMapper.selectTrackOrderIds(userId);
+                // B.contains(A) ?
+                trackIds.stream().forEach(trackId -> {
+                    if (list.contains(trackId)) {
+                        throw new GuiguException(201, "声音在其他未支付订单中");
+                    }
+                });
+            }
+            case SystemConstant.ORDER_ITEM_TYPE_VIP -> {
+                // 查询是否有未支付的订单
+                OrderInfo orderInfo = getOne(new LambdaQueryWrapper<OrderInfo>()
+                        .eq(OrderInfo::getUserId, userId)
+                        .eq(OrderInfo::getItemType, SystemConstant.ORDER_ITEM_TYPE_VIP)
+                        .eq(OrderInfo::getOrderStatus, SystemConstant.ORDER_STATUS_UNPAID));
+                if (null != orderInfo) {
+                    throw new GuiguException(201, "您存在未支付的会员订单，请先取消支付或支付订单后处理");
+                }
+            }
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -102,7 +139,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 try {
                     String sign = orderInfoVo.getSign();
                     Jwt jwt = JwtHelper.decodeAndVerify(sign, new RsaVerifier(SystemConstant.PUBLIC_KEY));
-                    // TODO 场景校验（订单是否存在未支付/已支付）
+                    // checkOrder
                     String payWay = orderInfoVo.getPayWay();
                     if (payWay.equals(SystemConstant.ORDER_PAY_ACCOUNT)) {
                         // TODO 余额扣款
