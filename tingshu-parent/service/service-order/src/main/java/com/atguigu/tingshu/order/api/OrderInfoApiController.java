@@ -43,5 +43,13 @@ public class OrderInfoApiController {
 				new LambdaQueryWrapper<OrderInfo>().eq(OrderInfo::getUserId, AuthContextHolder.getUserId())
 						.orderByDesc(OrderInfo::getCreateTime)));
 	}
+
+	@GuiguLogin
+	@GetMapping("/getOrderInfo/{orderNo}")
+	public Result<OrderInfo> getOrderInfo(@PathVariable("orderNo") String orderNo) {
+		return Result.ok(orderInfoService.getOne(new LambdaQueryWrapper<OrderInfo>()
+				.eq(OrderInfo::getUserId, AuthContextHolder.getUserId())
+				.eq(OrderInfo::getOrderNo, orderNo)));
+	}
 }
 
