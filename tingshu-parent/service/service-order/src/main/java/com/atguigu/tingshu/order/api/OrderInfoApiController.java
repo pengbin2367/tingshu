@@ -2,15 +2,16 @@ package com.atguigu.tingshu.order.api;
 
 import com.atguigu.tingshu.common.login.GuiguLogin;
 import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.order.service.OrderInfoService;
 import com.atguigu.tingshu.vo.order.OrderInfoVo;
 import com.atguigu.tingshu.vo.order.TradeVo;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -33,6 +34,14 @@ public class OrderInfoApiController {
 	@PostMapping("/submitOrder")
 	public Result<Map<String, Object>> submitOrder(@RequestBody OrderInfoVo orderInfoVo) {
 		return Result.ok(orderInfoService.submitOrder(orderInfoVo));
+	}
+
+	@GuiguLogin
+	@GetMapping("/findUserPage/{page}/{size}")
+	public Result findUserPage(@PathVariable("page") Integer page, @PathVariable("size") Integer size) {
+		return Result.ok(orderInfoService.page(new Page<>(page, size),
+				new LambdaQueryWrapper<OrderInfo>().eq(OrderInfo::getUserId, AuthContextHolder.getUserId())
+						.orderByDesc(OrderInfo::getCreateTime)));
 	}
 }
 
