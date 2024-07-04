@@ -43,6 +43,7 @@ public class SystemConstant {
     public static final String  ORDER_STATUS_UNPAID="0901";  // 未支付
     public static final String  ORDER_STATUS_PAID="0902";  // 已支付
     public static final String  ORDER_STATUS_CANCEL="0903";  // 已取消
+    public static final String  ORDER_STATUS_AUTO_CANCEL="0904";  // 自动取消
 
     //订单付款项目类型 1001-专辑 1002-声音 1003-vip会员
     public static final String  ORDER_ITEM_TYPE_ALBUM="1001";  // 专辑

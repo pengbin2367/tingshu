@@ -30,6 +30,8 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.jwt.Jwt;
@@ -75,6 +77,9 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
     @Autowired
     private RedissonClient redissonClient;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     @Override
     public Object trade(TradeVo tradeVo) {
@@ -186,7 +191,12 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                     JSONObject result = new JSONObject();
                     result.put("orderNo", orderInfo.getOrderNo());
 
-                    // TODO 发送延迟消息，开始倒计时（非余额支付）
+                    // 发送延迟消息，开始倒计时（非余额支付）
+                    rabbitTemplate.convertAndSend("order_normal_change", "order.dead", userId + ":" + orderInfo.getOrderNo(), message -> {
+                        MessageProperties messageProperties = message.getMessageProperties();
+                        messageProperties.setExpiration(900000 + "");
+                        return message;
+                    });
 
                     return result;
                 } catch (Exception e) {
@@ -326,8 +336,13 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     }
 
     @Override
-    public void cancelOrder(String orderNo) {
-        Long userId = AuthContextHolder.getUserId();
+    public void cancelOrder(Long userId, String orderNo) {
+        String status = SystemConstant.ORDER_STATUS_CANCEL;
+        if (userId == null) {
+            userId = AuthContextHolder.getUserId();
+        } else {
+            status = SystemConstant.ORDER_STATUS_AUTO_CANCEL;
+        }
         RLock lock = redissonClient.getLock("Cancel_OrderInfo_UserId_" + userId + "_" + orderNo);
         try {
             if (lock.tryLock()) {
@@ -337,7 +352,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                             .eq(OrderInfo::getOrderNo, orderNo)
                             .eq(OrderInfo::getOrderStatus, SystemConstant.ORDER_STATUS_UNPAID)
                     );
-                    orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_CANCEL);
+                    orderInfo.setOrderStatus(status);
                     updateById(orderInfo);
                 }catch (Exception e) {
                     throw e;

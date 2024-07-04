@@ -55,7 +55,7 @@ public class OrderInfoApiController {
 	@GuiguLogin
 	@PostMapping("/cancelOrder/{orderNo}")
 	public Result cancelOrder(@PathVariable("orderNo") String orderNo) {
-		orderInfoService.cancelOrder(orderNo);
+		orderInfoService.cancelOrder(null, orderNo);
 		return Result.ok();
 	}
 }
