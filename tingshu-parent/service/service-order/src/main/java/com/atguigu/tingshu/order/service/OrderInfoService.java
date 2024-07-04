@@ -12,4 +12,6 @@ public interface OrderInfoService extends IService<OrderInfo> {
     Object trade(TradeVo tradeVo);
 
     Map<String, Object> submitOrder(OrderInfoVo orderInfoVo);
+
+    void cancelOrder(String orderNo);
 }

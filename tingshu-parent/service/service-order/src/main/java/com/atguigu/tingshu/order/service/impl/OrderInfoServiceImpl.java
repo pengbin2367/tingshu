@@ -324,4 +324,29 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         orderInfoVo.setTimestamp(System.currentTimeMillis());
         return orderInfoVo;
     }
+
+    @Override
+    public void cancelOrder(String orderNo) {
+        Long userId = AuthContextHolder.getUserId();
+        RLock lock = redissonClient.getLock("Cancel_OrderInfo_UserId_" + userId + "_" + orderNo);
+        try {
+            if (lock.tryLock()) {
+                try {
+                    OrderInfo orderInfo = getOne(new LambdaQueryWrapper<OrderInfo>()
+                            .eq(OrderInfo::getUserId, userId)
+                            .eq(OrderInfo::getOrderNo, orderNo)
+                            .eq(OrderInfo::getOrderStatus, SystemConstant.ORDER_STATUS_UNPAID)
+                    );
+                    orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_CANCEL);
+                    updateById(orderInfo);
+                }catch (Exception e) {
+                    throw e;
+                } finally {
+                    lock.unlock();
+                }
+            }
+        } catch (Exception e) {
+            throw e;
+        }
+    }
 }

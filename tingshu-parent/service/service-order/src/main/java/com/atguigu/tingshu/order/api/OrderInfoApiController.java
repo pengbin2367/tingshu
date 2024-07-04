@@ -51,5 +51,12 @@ public class OrderInfoApiController {
 				.eq(OrderInfo::getUserId, AuthContextHolder.getUserId())
 				.eq(OrderInfo::getOrderNo, orderNo)));
 	}
+
+	@GuiguLogin
+	@PostMapping("/cancelOrder/{orderNo}")
+	public Result cancelOrder(@PathVariable("orderNo") String orderNo) {
+		orderInfoService.cancelOrder(orderNo);
+		return Result.ok();
+	}
 }
 
