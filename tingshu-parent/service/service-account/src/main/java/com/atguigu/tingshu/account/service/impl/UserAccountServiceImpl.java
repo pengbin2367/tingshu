@@ -16,4 +16,8 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 	@Autowired
 	private UserAccountMapper userAccountMapper;
 
+	@Override
+	public void decountUserAccount(String msg) {
+
+	}
 }

@@ -146,9 +146,6 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                     Jwt jwt = JwtHelper.decodeAndVerify(sign, new RsaVerifier(SystemConstant.PUBLIC_KEY));
                     // checkOrder
                     String payWay = orderInfoVo.getPayWay();
-                    if (payWay.equals(SystemConstant.ORDER_PAY_ACCOUNT)) {
-                        // TODO 余额扣款
-                    }
                     String claims = jwt.getClaims();
                     orderInfoVo = JSONObject.parseObject(claims, OrderInfoVo.class);
 
@@ -191,6 +188,10 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                     JSONObject result = new JSONObject();
                     result.put("orderNo", orderInfo.getOrderNo());
 
+                    if (payWay.equals(SystemConstant.ORDER_PAY_ACCOUNT)) {
+                        // 发送余额扣款消息
+                        rabbitTemplate.convertAndSend("order_pay_change", "order.pay", JSONObject.toJSONString(orderInfo));
+                    }
                     // 发送延迟消息，开始倒计时（非余额支付）
                     rabbitTemplate.convertAndSend("order_normal_change", "order.dead", userId + ":" + orderInfo.getOrderNo(), message -> {
                         MessageProperties messageProperties = message.getMessageProperties();
