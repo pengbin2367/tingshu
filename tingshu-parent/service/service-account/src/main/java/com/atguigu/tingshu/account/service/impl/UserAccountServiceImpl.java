@@ -58,6 +58,7 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 			if (i <= 0) {
 				throw new GuiguException(201, "余额不足");
 			}
+			userAccountDetail = new UserAccountDetail();
 			userAccountDetail.setUserId(userId);
 			userAccountDetail.setTitle(orderInfo.getOrderTitle());
 			userAccountDetail.setTradeType(SystemConstant.ACCOUNT_TRADE_TYPE_MINUS);
