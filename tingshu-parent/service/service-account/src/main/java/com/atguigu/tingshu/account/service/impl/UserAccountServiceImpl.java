@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.account.mapper.UserAccountDetailMapper;
 import com.atguigu.tingshu.account.mapper.UserAccountMapper;
 import com.atguigu.tingshu.account.service.UserAccountService;
+import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.account.UserAccount;
@@ -54,6 +55,20 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 			if (i <= 0) {
 				throw new GuiguException(201, "余额不足");
 			}
+			userAccountDetail.setUserId(userId);
+			userAccountDetail.setTitle(orderInfo.getOrderTitle());
+			userAccountDetail.setTradeType(SystemConstant.ACCOUNT_TRADE_TYPE_MINUS);
+			userAccountDetail.setAmount(orderAmount);
+			userAccountDetail.setOrderNo(orderNo);
+			int insert = userAccountDetailMapper.insert(userAccountDetail);
+			if (insert <= 0) {
+				throw new GuiguException(201, "保存支付明细失败");
+			}
+			// TODO 发通知
+			//  1. service-order 	修改订单状态
+			//  2. service-album 	增加购买次数
+			//  3. service-search 	增加购买次数和热度值
+			//  4. service-user 	记录用户的购买流水
 		} catch (Exception e) {
 			throw e;
 		} finally {
