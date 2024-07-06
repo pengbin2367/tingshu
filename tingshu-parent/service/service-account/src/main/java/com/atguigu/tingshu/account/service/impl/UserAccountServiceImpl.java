@@ -14,6 +14,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,9 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 
 	@Autowired
 	private UserAccountDetailMapper userAccountDetailMapper;
+
+	@Autowired
+	private RabbitTemplate rabbitTemplate;
 
 	@Override
 	public void decountUserAccount(String msg) {
@@ -63,11 +67,12 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 			if (insert <= 0) {
 				throw new GuiguException(201, "保存支付明细失败");
 			}
-			// TODO 发通知
+			// 发通知
 			//  1. service-order 	修改订单状态
 			//  2. service-album 	增加购买次数
 			//  3. service-search 	增加购买次数和热度值
 			//  4. service-user 	记录用户的购买流水
+			rabbitTemplate.convertAndSend("account_change", "", orderNo);
 		} catch (Exception e) {
 			throw e;
 		} finally {
