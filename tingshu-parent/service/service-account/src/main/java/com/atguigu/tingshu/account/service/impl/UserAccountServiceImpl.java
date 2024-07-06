@@ -6,7 +6,6 @@ import com.atguigu.tingshu.account.mapper.UserAccountMapper;
 import com.atguigu.tingshu.account.service.UserAccountService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
-import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.account.UserAccount;
 import com.atguigu.tingshu.model.account.UserAccountDetail;
 import com.atguigu.tingshu.model.order.OrderInfo;
@@ -43,7 +42,7 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 		RLock lock = redissonClient.getLock("Order_User_Account_Lock_" + orderNo);
 		lock.lock();
 		try {
-			Long userId = AuthContextHolder.getUserId();
+			Long userId = orderInfo.getUserId();
 			UserAccountDetail userAccountDetail = userAccountDetailMapper.selectOne(new LambdaQueryWrapper<UserAccountDetail>()
 					.eq(UserAccountDetail::getOrderNo, orderNo)
 					.eq(UserAccountDetail::getUserId, userId));
