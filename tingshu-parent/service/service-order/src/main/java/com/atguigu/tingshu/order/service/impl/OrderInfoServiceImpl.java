@@ -365,4 +365,26 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             throw e;
         }
     }
+
+    @Override
+    public void updateOrderInfo(String orderNo) {
+        OrderInfo orderInfo = getOne(new LambdaQueryWrapper<OrderInfo>().eq(OrderInfo::getOrderNo, orderNo));
+        if (orderInfo == null) return ;
+        Long userId = orderInfo.getUserId();
+        RLock lock = redissonClient.getLock("Cancel_OrderInfo_UserId_" + userId + "_" + orderNo);
+        lock.lock();
+        try {
+            if (orderInfo.getOrderStatus().equals(SystemConstant.ORDER_STATUS_PAID)) {
+                // TODO 已支付，此时出现重复消费（同渠道消费两次，不同渠道分别消费一次）
+            } else {
+                // 已取消/未支付，将支付状态修改为已支付即可
+                orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_PAID);
+            }
+            updateById(orderInfo);
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            lock.unlock();
+        }
+    }
 }

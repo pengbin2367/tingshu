@@ -14,4 +14,6 @@ public interface OrderInfoService extends IService<OrderInfo> {
     Map<String, Object> submitOrder(OrderInfoVo orderInfoVo);
 
     void cancelOrder(Long userId, String orderNo);
+
+    void updateOrderInfo(String orderNo);
 }
