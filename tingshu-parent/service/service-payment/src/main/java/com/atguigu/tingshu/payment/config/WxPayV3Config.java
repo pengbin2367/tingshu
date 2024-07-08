@@ -1,14 +1,8 @@
 package com.atguigu.tingshu.payment.config;
 
-import com.wechat.pay.java.core.RSAAutoCertificateConfig;
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-@Configuration
-@ConfigurationProperties(prefix="wechat.v3pay") //读取节点
-@Data
+//@Configuration
+//@ConfigurationProperties(prefix="wechat.v3pay") //读取节点
+//@Data
 public class WxPayV3Config {
 
     private String appid;
@@ -23,15 +17,15 @@ public class WxPayV3Config {
     /** 回调地址 */
     private String notifyUrl;
 	
-	@Bean
-    public RSAAutoCertificateConfig getConfig(){
-        return new RSAAutoCertificateConfig.Builder()
-                        .merchantId(this.getMerchantId())
-                        .privateKeyFromPath(this.getPrivateKeyPath())
-                        .merchantSerialNumber(this.getMerchantSerialNumber())
-                        .apiV3Key(this.getApiV3key())
-                        .build();
-
-    }
+//	@Bean
+//    public RSAAutoCertificateConfig getConfig(){
+//        return new RSAAutoCertificateConfig.Builder()
+//                        .merchantId(this.getMerchantId())
+//                        .privateKeyFromPath(this.getPrivateKeyPath())
+//                        .merchantSerialNumber(this.getMerchantSerialNumber())
+//                        .apiV3Key(this.getApiV3key())
+//                        .build();
+//
+//    }
 
 }
