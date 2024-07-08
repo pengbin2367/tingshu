@@ -1,8 +1,10 @@
 package com.atguigu.tingshu.payment.service;
 
+import java.util.Map;
+
 public interface WxPayService {
 
-    String getWxPayUrl(String body, String orderNo, String money);
+    String getWxPayUrl(Map<String, String> paramsMap);
 
     String getWxPayResult(String orderNo);
 }

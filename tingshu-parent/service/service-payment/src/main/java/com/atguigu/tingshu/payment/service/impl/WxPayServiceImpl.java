@@ -31,7 +31,10 @@ public class WxPayServiceImpl implements WxPayService {
 	private String notifyUrl;
 
 	@Override
-	public String getWxPayUrl(String body, String orderNo, String money) {
+	public String getWxPayUrl(Map<String, String> paramsMap) {
+		String body = paramsMap.get("body");
+		String orderNo = paramsMap.get("orderNo");
+		String money = paramsMap.get("money");
 		if (StringUtils.isEmpty(body) || StringUtils.isEmpty(orderNo) || StringUtils.isEmpty(money)) {
 			return null;
 		}
@@ -45,6 +48,11 @@ public class WxPayServiceImpl implements WxPayService {
 		params.put("spbill_create_ip", "192.168.0.166");
 		params.put("notify_url", notifyUrl);
 		params.put("trade_type", "NATIVE");
+		// 包装附加数据
+		Map<String, String> attach = new HashMap<>();
+		attach.put("exchange", paramsMap.get("exchange"));
+		attach.put("routingKey", paramsMap.get("routingKey"));
+		params.put("attach", JSONObject.toJSONString(attach));
 		try {
 			String url = "https://api.mch.weixin.qq.com/pay/unifiedorder";
 			HttpClient httpClient = new HttpClient(url);
