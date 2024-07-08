@@ -64,4 +64,30 @@ public class WxPayServiceImpl implements WxPayService {
 		}
 		return null;
 	}
+
+	@Override
+	public String getWxPayResult(String orderNo) {
+		if (StringUtils.isEmpty(orderNo)) {
+			return null;
+		}
+		Map<String, String> params = new HashMap<>();
+		params.put("appid", appid);
+		params.put("mch_id", partner);
+		params.put("nonce_str", WXPayUtil.generateNonceStr());
+		params.put("out_trade_no", "tingshujava0628111" + orderNo);
+		try {
+			String url = "https://api.mch.weixin.qq.com/pay/orderquery";
+			HttpClient httpClient = new HttpClient(url);
+			httpClient.setHttps(true);
+			String paramsXml = WXPayUtil.generateSignedXml(params, partnerkey);
+			httpClient.setXmlParam(paramsXml);
+			httpClient.post();
+			String contentXmlString = httpClient.getContent();
+			Map<String, String> result = WXPayUtil.xmlToMap(contentXmlString);
+			return JSONObject.toJSONString(result);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 }
