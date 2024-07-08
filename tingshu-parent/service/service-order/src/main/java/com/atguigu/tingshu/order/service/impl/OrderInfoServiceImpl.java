@@ -191,13 +191,14 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                     if (payWay.equals(SystemConstant.ORDER_PAY_ACCOUNT)) {
                         // 发送余额扣款消息
                         rabbitTemplate.convertAndSend("order_pay_change", "order.pay", JSONObject.toJSONString(orderInfo));
+                    } else {
+                        // 发送延迟消息，开始倒计时（非余额支付）
+                        rabbitTemplate.convertAndSend("order_normal_change", "order.dead", userId + ":" + orderInfo.getOrderNo(), message -> {
+                            MessageProperties messageProperties = message.getMessageProperties();
+                            messageProperties.setExpiration(900000 + "");
+                            return message;
+                        });
                     }
-                    // 发送延迟消息，开始倒计时（非余额支付）
-                    rabbitTemplate.convertAndSend("order_normal_change", "order.dead", userId + ":" + orderInfo.getOrderNo(), message -> {
-                        MessageProperties messageProperties = message.getMessageProperties();
-                        messageProperties.setExpiration(900000 + "");
-                        return message;
-                    });
 
                     return result;
                 } catch (Exception e) {
@@ -386,5 +387,14 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         } finally {
             lock.unlock();
         }
+    }
+
+    @Override
+    public OrderInfo getOrderInfo(String orderNo) {
+        OrderInfo orderInfo = getOne(new LambdaQueryWrapper<OrderInfo>().eq(OrderInfo::getOrderNo, orderNo));
+        if (orderInfo == null) return null;
+        List<OrderDetail> orderDetail = orderDetailMapper.selectList(new LambdaQueryWrapper<OrderDetail>().eq(OrderDetail::getOrderId, orderInfo.getId()));
+        orderInfo.setOrderDetailList(orderDetail);
+        return orderInfo;
     }
 }

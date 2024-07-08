@@ -16,4 +16,6 @@ public interface OrderInfoService extends IService<OrderInfo> {
     void cancelOrder(Long userId, String orderNo);
 
     void updateOrderInfo(String orderNo);
+
+    OrderInfo getOrderInfo(String orderNo);
 }

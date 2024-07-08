@@ -1,16 +1,14 @@
 package com.atguigu.tingshu.album.service.impl;
 
-import com.atguigu.tingshu.album.mapper.AlbumAttributeValueMapper;
-import com.atguigu.tingshu.album.mapper.AlbumInfoMapper;
-import com.atguigu.tingshu.album.mapper.AlbumStatMapper;
+import com.atguigu.tingshu.album.mapper.*;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
 import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
-import com.atguigu.tingshu.model.album.AlbumAttributeValue;
-import com.atguigu.tingshu.model.album.AlbumInfo;
-import com.atguigu.tingshu.model.album.AlbumStat;
+import com.atguigu.tingshu.model.album.*;
+import com.atguigu.tingshu.model.order.OrderInfo;
+import com.atguigu.tingshu.order.client.OrderInfoFeignClient;
 import com.atguigu.tingshu.query.album.AlbumInfoQuery;
 import com.atguigu.tingshu.vo.album.AlbumAttributeValueVo;
 import com.atguigu.tingshu.vo.album.AlbumInfoVo;
@@ -18,6 +16,7 @@ import com.atguigu.tingshu.vo.album.AlbumListVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -45,6 +44,12 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
+
+    @Resource
+    private OrderInfoFeignClient orderInfoFeignClient;
+
+    @Autowired
+    private TrackInfoMapper trackInfoMapper;
 
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -162,5 +167,22 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
     @Override
     public List<AlbumAttributeValue> getAlbumAttributeValue(Long albumId) {
         return albumAttributeValueMapper.selectList(new LambdaQueryWrapper<AlbumAttributeValue>().eq(AlbumAttributeValue::getAlbumId, albumId));
+    }
+
+    @Override
+    public void updateAlbumStat(String orderNo) {
+        OrderInfo orderInfo = orderInfoFeignClient.getOrderInfo(orderNo);
+        if (orderInfo == null) return ;
+        String itemType = orderInfo.getItemType();
+        if (SystemConstant.ORDER_ITEM_TYPE_ALBUM.equals(itemType)) {
+            Long albumId = orderInfo.getOrderDetailList().get(0).getItemId();
+            albumStatMapper.updateByOrder(albumId, 1, SystemConstant.ALBUM_STAT_BROWSE);
+        } else if (SystemConstant.ORDER_ITEM_TYPE_TRACK.equals(itemType)) {
+            Long trackId = orderInfo.getOrderDetailList().get(0).getItemId();
+            int size = orderInfo.getOrderDetailList().size();
+            TrackInfo trackInfo = trackInfoMapper.selectById(trackId);
+            if (trackInfo == null) return ;
+            albumStatMapper.updateByOrder(trackInfo.getAlbumId(), size, SystemConstant.ALBUM_STAT_BROWSE);
+        }
     }
 }
