@@ -5,4 +5,6 @@ public interface ItemService {
     void addAlbumFromDbToEs(Long albumId);
 
     void removeAlbumFromEs(Long albumId);
+
+    void updateAlbumBuyAndHotScore(String orderNo);
 }

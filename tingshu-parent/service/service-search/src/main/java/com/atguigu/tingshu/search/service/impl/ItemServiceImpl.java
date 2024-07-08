@@ -8,10 +8,12 @@ import com.atguigu.tingshu.common.util.PinYinUtils;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
+import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.search.AttributeValueIndex;
 import com.atguigu.tingshu.model.search.SuggestIndex;
 import com.atguigu.tingshu.model.user.UserInfo;
+import com.atguigu.tingshu.order.client.OrderInfoFeignClient;
 import com.atguigu.tingshu.search.dao.AlbumInfoIndexDao;
 import com.atguigu.tingshu.search.dao.SuggestIndexDao;
 import com.atguigu.tingshu.search.service.ItemService;
@@ -22,10 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.core.suggest.Completion;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -47,6 +46,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Resource
     private CategoryFeignClient categoryFeignClient;
+
+    @Resource
+    private OrderInfoFeignClient orderInfoFeignClient;
 
     @Override
     public void addAlbumFromDbToEs(Long albumId) {
@@ -115,5 +117,34 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public void removeAlbumFromEs(Long albumId) {
         albumInfoIndexDao.deleteById(albumId);
+    }
+
+    @Override
+    public void updateAlbumBuyAndHotScore(String orderNo) {
+        OrderInfo orderInfo = orderInfoFeignClient.getOrderInfo(orderNo);
+        if (orderInfo == null) return ;
+        String itemType = orderInfo.getItemType();
+        if (SystemConstant.ORDER_ITEM_TYPE_ALBUM.equals(itemType)) {
+            Long albumId = orderInfo.getOrderDetailList().get(0).getItemId();
+            Optional<AlbumInfoIndex> optional = albumInfoIndexDao.findById(albumId);
+            if (optional.isPresent()) {
+                AlbumInfoIndex albumInfoIndex = optional.get();
+                albumInfoIndex.setHotScore(albumInfoIndex.getHotScore() + 10);
+                albumInfoIndex.setBuyStatNum(albumInfoIndex.getBuyStatNum() + 1);
+                albumInfoIndexDao.save(albumInfoIndex);
+            }
+        } else if (SystemConstant.ORDER_ITEM_TYPE_TRACK.equals(itemType)) {
+            Long trackId = orderInfo.getOrderDetailList().get(0).getItemId();
+            int size = orderInfo.getOrderDetailList().size();
+            AlbumInfo albumInfo = albumInfoFeignClient.getAlbumInfoByTrackId(trackId);
+            Long albumId = albumInfo.getId();
+            Optional<AlbumInfoIndex> optional = albumInfoIndexDao.findById(albumId);
+            if (optional.isPresent()) {
+                AlbumInfoIndex albumInfoIndex = optional.get();
+                albumInfoIndex.setHotScore(albumInfoIndex.getHotScore() + 10 * size);
+                albumInfoIndex.setBuyStatNum(albumInfoIndex.getBuyStatNum() + size);
+                albumInfoIndexDao.save(albumInfoIndex);
+            }
+        }
     }
 }
