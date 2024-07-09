@@ -14,6 +14,7 @@ import com.atguigu.tingshu.model.account.UserAccountDetail;
 import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.model.payment.PaymentInfo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -124,5 +125,13 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 			userAccountDetailMapper.insert(userAccountDetail);
 			rabbitTemplate.convertAndSend("account_exchange", "", orderNo);
 		}
+	}
+
+	@Override
+	public Object findAccountTradePage(Integer page, Integer size, String type) {
+		return userAccountDetailMapper.selectPage(new Page<>(page, size), new LambdaQueryWrapper<UserAccountDetail>()
+				.eq(UserAccountDetail::getUserId, AuthContextHolder.getUserId())
+				.eq(UserAccountDetail::getTradeType, type)
+				.orderByDesc(UserAccountDetail::getId));
 	}
 }

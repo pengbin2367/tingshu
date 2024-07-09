@@ -8,4 +8,6 @@ public interface UserAccountService extends IService<UserAccount> {
     void decountUserAccount(String msg);
 
     void userAccountPaymentInfo(String msg);
+
+    Object findAccountTradePage(Integer page, Integer size, String type);
 }
