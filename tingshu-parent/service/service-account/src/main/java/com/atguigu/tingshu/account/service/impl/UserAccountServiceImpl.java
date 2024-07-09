@@ -6,9 +6,11 @@ import com.atguigu.tingshu.account.mapper.UserAccountMapper;
 import com.atguigu.tingshu.account.service.UserAccountService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.account.UserAccount;
 import com.atguigu.tingshu.model.account.UserAccountDetail;
 import com.atguigu.tingshu.model.order.OrderInfo;
+import com.atguigu.tingshu.model.payment.PaymentInfo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -78,6 +80,27 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 			throw e;
 		} finally {
 			lock.unlock();
+		}
+	}
+
+	@Override
+	public void userAccountPaymentInfo(String msg) {
+		PaymentInfo paymentInfo = JSONObject.parseObject(msg, PaymentInfo.class);
+		String orderNo = paymentInfo.getOrderNo();
+		String paymentType = paymentInfo.getPaymentType();
+		if (paymentType.equals(SystemConstant.PAYMENT_TYPE_RECHARGE)) {
+			// TODO 充值订单
+		} else if (paymentType.equals(SystemConstant.PAYMENT_TYPE_ORDER)) {
+			UserAccountDetail userAccountDetail = userAccountDetailMapper.selectOne(new LambdaQueryWrapper<UserAccountDetail>().eq(UserAccountDetail::getOrderNo, orderNo));
+			if (userAccountDetail != null) return ;
+			userAccountDetail = new UserAccountDetail();
+			userAccountDetail.setUserId(AuthContextHolder.getUserId());
+			userAccountDetail.setTitle(paymentInfo.getContent());
+			userAccountDetail.setTradeType(SystemConstant.ACCOUNT_TRADE_TYPE_MINUS);
+			userAccountDetail.setAmount(paymentInfo.getAmount());
+			userAccountDetail.setOrderNo(orderNo);
+			userAccountDetailMapper.insert(userAccountDetail);
+			rabbitTemplate.convertAndSend("account_exchange", "", orderNo);
 		}
 	}
 }
