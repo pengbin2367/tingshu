@@ -33,4 +33,6 @@ public interface AlbumInfoService extends IService<AlbumInfo> {
     List<AlbumAttributeValue> getAlbumAttributeValue(Long albumId);
 
     void updateAlbumStat(String orderNo);
+
+    void getAlbumInfoByStat(String type);
 }

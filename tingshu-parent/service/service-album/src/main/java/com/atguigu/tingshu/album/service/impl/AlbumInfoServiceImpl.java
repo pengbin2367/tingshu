@@ -7,6 +7,7 @@ import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.*;
+import com.atguigu.tingshu.model.base.BaseEntity;
 import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.order.client.OrderInfoFeignClient;
 import com.atguigu.tingshu.query.album.AlbumInfoQuery;
@@ -19,12 +20,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /***
@@ -50,6 +54,9 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 
     @Autowired
     private TrackInfoMapper trackInfoMapper;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -184,5 +191,13 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
             if (trackInfo == null) return ;
             albumStatMapper.updateByOrder(trackInfo.getAlbumId(), size, SystemConstant.ALBUM_STAT_BROWSE);
         }
+    }
+
+    @Override
+    public void getAlbumInfoByStat(String type) {
+        List<AlbumStat> albumStatList = albumStatMapper.selectPage(new Page<>(1, 30), new LambdaQueryWrapper<AlbumStat>().eq(AlbumStat::getStatType, type)).getRecords();
+        Set<Long> collect = albumStatList.stream().map(AlbumStat::getAlbumId).collect(Collectors.toSet());
+        List<AlbumInfo> albumInfos = albumInfoMapper.selectList(new LambdaQueryWrapper<AlbumInfo>().in(BaseEntity::getId, collect));
+        redisTemplate.opsForValue().set("Album_Rank_" + type, albumInfos, 1, TimeUnit.DAYS);
     }
 }
