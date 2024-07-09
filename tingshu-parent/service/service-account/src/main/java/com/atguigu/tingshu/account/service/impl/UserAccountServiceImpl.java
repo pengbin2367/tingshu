@@ -1,12 +1,14 @@
 package com.atguigu.tingshu.account.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.atguigu.tingshu.account.mapper.RechargeInfoMapper;
 import com.atguigu.tingshu.account.mapper.UserAccountDetailMapper;
 import com.atguigu.tingshu.account.mapper.UserAccountMapper;
 import com.atguigu.tingshu.account.service.UserAccountService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.account.RechargeInfo;
 import com.atguigu.tingshu.model.account.UserAccount;
 import com.atguigu.tingshu.model.account.UserAccountDetail;
 import com.atguigu.tingshu.model.order.OrderInfo;
@@ -40,6 +42,9 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 
 	@Autowired
 	private RabbitTemplate rabbitTemplate;
+
+	@Autowired
+	private RechargeInfoMapper rechargeInfoMapper;
 
 	@Override
 	public void decountUserAccount(String msg) {
@@ -89,7 +94,24 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 		String orderNo = paymentInfo.getOrderNo();
 		String paymentType = paymentInfo.getPaymentType();
 		if (paymentType.equals(SystemConstant.PAYMENT_TYPE_RECHARGE)) {
-			// TODO 充值订单
+			// 充值订单
+			RechargeInfo rechargeInfo = rechargeInfoMapper.selectOne(new LambdaQueryWrapper<RechargeInfo>()
+					.eq(RechargeInfo::getOrderNo, orderNo)
+					.eq(RechargeInfo::getRechargeStatus, SystemConstant.ORDER_STATUS_UNPAID));
+			if (rechargeInfo == null) return ;
+
+			rechargeInfo.setRechargeStatus(SystemConstant.ORDER_STATUS_PAID);
+			rechargeInfoMapper.updateById(rechargeInfo);
+
+			userAccountMapper.addAvailableAmount(rechargeInfo.getUserId(), rechargeInfo.getRechargeAmount());
+
+			UserAccountDetail userAccountDetail = new UserAccountDetail();
+			userAccountDetail.setUserId(paymentInfo.getUserId());
+			userAccountDetail.setTitle(paymentInfo.getContent());
+			userAccountDetail.setTradeType(SystemConstant.ACCOUNT_TRADE_TYPE_DEPOSIT);
+			userAccountDetail.setAmount(rechargeInfo.getRechargeAmount());
+			userAccountDetail.setOrderNo(orderNo);
+			userAccountDetailMapper.insert(userAccountDetail);
 		} else if (paymentType.equals(SystemConstant.PAYMENT_TYPE_ORDER)) {
 			UserAccountDetail userAccountDetail = userAccountDetailMapper.selectOne(new LambdaQueryWrapper<UserAccountDetail>().eq(UserAccountDetail::getOrderNo, orderNo));
 			if (userAccountDetail != null) return ;

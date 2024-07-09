@@ -61,7 +61,7 @@ public class WxPayServiceImpl implements WxPayService {
 		params.put("mch_id", partner);
 		params.put("nonce_str", WXPayUtil.generateNonceStr());
 		params.put("body", body);
-		params.put("out_trade_no", "tingshujava0628111" + orderNo);
+		params.put("out_trade_no", orderNo);
 		params.put("total_fee", money);
 		params.put("spbill_create_ip", "192.168.0.166");
 		params.put("notify_url", notifyUrl);
@@ -93,14 +93,14 @@ public class WxPayServiceImpl implements WxPayService {
 	}
 
 	private void savePaymentInfo(Map<String, String> paramsMap) {
-		String orderNo = "tingshujava0628111" + paramsMap.get("orderNo");
+		String orderNo = paramsMap.get("orderNo");
 		paymentInfoService.remove(new LambdaQueryWrapper<PaymentInfo>().eq(PaymentInfo::getOrderNo, orderNo));
 		PaymentInfo paymentInfo = new PaymentInfo();
 		paymentInfo.setUserId(AuthContextHolder.getUserId());
 		paymentInfo.setPaymentType(paramsMap.get("paymentType"));
 		paymentInfo.setOrderNo(orderNo);
 		paymentInfo.setPayWay(SystemConstant.ORDER_PAY_WAY_WEIXIN);
-		paymentInfo.setAmount(new BigDecimal(paramsMap.get("money")));
+		paymentInfo.setAmount(new BigDecimal(paramsMap.get("money")).divide(new BigDecimal(100)));
 		paymentInfo.setContent(paramsMap.get("body"));
 		paymentInfo.setPaymentStatus(SystemConstant.PAYMENT_STATUS_UNPAID);
 		paymentInfoService.save(paymentInfo);
@@ -115,7 +115,7 @@ public class WxPayServiceImpl implements WxPayService {
 		params.put("appid", appid);
 		params.put("mch_id", partner);
 		params.put("nonce_str", WXPayUtil.generateNonceStr());
-		params.put("out_trade_no", "tingshujava0628111" + orderNo);
+		params.put("out_trade_no", orderNo);
 		try {
 			String url = "https://api.mch.weixin.qq.com/pay/orderquery";
 			HttpClient httpClient = new HttpClient(url);
@@ -149,9 +149,9 @@ public class WxPayServiceImpl implements WxPayService {
 //        inputStream.close(); outputStream.close();
 		// TODO 方便测试，未使用真实接口
 //        String resultString = "{\"transaction_id\":\"4200002401202407089871520059\",\"nonce_str\":\"f8FFiQco0tsMb7vI\",\"trade_state\":\"SUCCESS\",\"bank_type\":\"OTHERS\",\"openid\":\"oHwsHuJDSnjwhH20Jyj4uqta1Iog\",\"sign\":\"816B864E179D072BF5D098DC46AA30F2\",\"return_msg\":\"OK\",\"fee_type\":\"CNY\",\"mch_id\":\"1558950191\",\"cash_fee\":\"1\",\"out_trade_no\":\"tingshujava0628111110\",\"cash_fee_type\":\"CNY\",\"appid\":\"wx74862e0dfcf69954\",\"total_fee\":\"1\",\"trade_state_desc\":\"支付成功\",\"trade_type\":\"NATIVE\",\"result_code\":\"SUCCESS\",\"attach\":\"\",\"time_end\":\"20240708182345\",\"is_subscribe\":\"N\",\"return_code\":\"SUCCESS\"}";
-		String resultString = "{\"transaction_id\":\"4200002319202407086287304125\",\"nonce_str\":\"zYDW2NsQfWG0D9XB\",\"trade_state\":\"SUCCESS\",\"bank_type\":\"OTHERS\",\"openid\":\"oHwsHuJDSnjwhH20Jyj4uqta1Iog\",\"sign\":\"B74AF44CDC21303FBE38143E31D5CF6E\",\"return_msg\":\"OK\",\"fee_type\":\"CNY\",\"mch_id\":\"1558950191\",\"cash_fee\":\"1\",\"out_trade_no\":\"tingshujava0628111120\",\"cash_fee_type\":\"CNY\",\"appid\":\"wx74862e0dfcf69954\",\"total_fee\":\"1\",\"trade_state_desc\":\"支付成功\",\"trade_type\":\"NATIVE\",\"result_code\":\"SUCCESS\",\"attach\":\"{\\\"exchange\\\":\\\"payment\\\",\\\"routingKey\\\":\\\"payment.tingshu.order\\\"}\",\"time_end\":\"20240708191213\",\"is_subscribe\":\"N\",\"return_code\":\"SUCCESS\"}";
+		String resultString = "{\"transaction_id\":\"4200002319202407086287304125\",\"nonce_str\":\"zYDW2NsQfWG0D9XB\",\"trade_state\":\"SUCCESS\",\"bank_type\":\"OTHERS\",\"openid\":\"oHwsHuJDSnjwhH20Jyj4uqta1Iog\",\"sign\":\"B74AF44CDC21303FBE38143E31D5CF6E\",\"return_msg\":\"OK\",\"fee_type\":\"CNY\",\"mch_id\":\"1558950191\",\"cash_fee\":\"1\",\"out_trade_no\":\"tingshujava0628111120\",\"cash_fee_type\":\"CNY\",\"appid\":\"wx74862e0dfcf69954\",\"total_fee\":\"1\",\"trade_state_desc\":\"支付成功\",\"trade_type\":\"NATIVE\",\"result_code\":\"SUCCESS\",\"attach\":\"{\\\"exchange\\\":\\\"payment_exchange\\\",\\\"routingKey\\\":\\\"payment.tingshu\\\"}\",\"time_end\":\"20240708191213\",\"is_subscribe\":\"N\",\"return_code\":\"SUCCESS\"}";
 		Map<String, String> map = JSONObject.parseObject(resultString, Map.class);
-		map.put("out_trade_no", "tingshujava0628111" + orderNo);
+		map.put("out_trade_no", orderNo);
 
 		CompletableFuture.runAsync(() -> {
 			updatePaymentInfo(map);

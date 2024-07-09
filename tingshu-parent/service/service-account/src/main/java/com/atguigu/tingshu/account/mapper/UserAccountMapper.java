@@ -13,4 +13,7 @@ public interface UserAccountMapper extends BaseMapper<UserAccount> {
 
     @Update("update tingshu_account.user_account set available_amount = available_amount - #{money} where user_id = #{userId} and available_amount >= #{money} and is_deleted = 0")
     int updateAvailableAmount(@Param("userId") Long userId, @Param("money") BigDecimal money);
+
+    @Update("update tingshu_account.user_account set available_amount = available_amount + #{money} where user_id = #{userId} and is_deleted = 0")
+    int addAvailableAmount(@Param("userId") Long userId, @Param("money") BigDecimal money);
 }

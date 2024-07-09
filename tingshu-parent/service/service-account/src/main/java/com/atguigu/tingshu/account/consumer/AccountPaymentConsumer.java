@@ -18,7 +18,7 @@ public class AccountPaymentConsumer {
     @Autowired
     private UserAccountService userAccountService;
 
-    @RabbitListener(queues = "order_pay_queue")
+    @RabbitListener(queues = "payment_queue")
     public void accountPaymentConsumer(Channel channel, Message message) {
         MessageProperties messageProperties = message.getMessageProperties();
         // 消息编号
