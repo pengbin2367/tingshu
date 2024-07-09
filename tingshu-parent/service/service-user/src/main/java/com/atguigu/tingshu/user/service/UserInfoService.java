@@ -19,4 +19,6 @@ public interface UserInfoService extends IService<UserInfo> {
     Boolean getUserIsBuyAlbum(Long albumId);
 
     Map<String, String> getUserTrackIds(Long albumId);
+
+    void userVipCheckTask();
 }

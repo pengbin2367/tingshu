@@ -16,6 +16,7 @@ import com.atguigu.tingshu.user.mapper.UserPaidTrackMapper;
 import com.atguigu.tingshu.user.service.UserInfoService;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.SneakyThrows;
@@ -164,5 +165,25 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 				key -> key.getTrackId().toString(),
 				value -> "1"
 		));
+	}
+
+	@Override
+	public void userVipCheckTask() {
+		LambdaQueryWrapper<UserInfo> wrapper = new LambdaQueryWrapper<UserInfo>().eq(UserInfo::getIsVip, 1);
+		// 查询Vip用户总量
+		Long count = userInfoMapper.selectCount(wrapper);
+		// 分页，每次处理100用户
+		int size = 100;
+		long totalPage = count % size == 0 ? count / size : count / size + 1;
+		// 遍历，用户过期时间是否小于当前时间，是则将vip设置为0
+		for (int page = 1; page <= totalPage; page++) {
+			List<UserInfo> userInfoList = userInfoMapper.selectPage(new Page<>(page, size), wrapper).getRecords();
+			userInfoList.stream().forEach(userInfo -> {
+				long time = userInfo.getVipExpireTime().getTime();
+				if (System.currentTimeMillis() > time) {
+					userInfoMapper.updateUserVip(userInfo.getId(), 0);
+				}
+			});
+		}
 	}
 }
