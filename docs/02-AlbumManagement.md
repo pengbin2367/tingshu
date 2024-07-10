@@ -6,7 +6,7 @@
 
 其次，我们需要访问nacos，增加一个关于service-album和service-gateway的配置，所有模块的配置内容参见`/tingshu-parent/aNacos`目录下
 （后续某个模块第一次启动，都需要在nacos中添加对应的配置，你可以在这里一次性将所有配置文件都导入/新建到nacos中）。
-同样的，也需要将相关的地址配置等信息修改为自己本机配置（vod是腾讯云点播相关配置，在下节会进行介绍）。
+同样的，也需要将相关的地址配置等信息修改为自己本机配置。
 
 ![](images/02-AlbumManagement.assets/055b9a37.png)
 

@@ -17,6 +17,7 @@ export default defineConfig({
         text: 'Docs',
         items: [
           { text: '准备工作', link: '/01-GettingStart' },
+          { text: '专辑管理', link: '/02-AlbumManagement' },
         ]
       }
     ],
