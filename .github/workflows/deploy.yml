@@ -28,7 +28,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/.vitepress/dist # 这里应该是 VitePress 构建输出的路径
           publish_branch: gh-pages
           cname: atqingke.com # 如果有自定义域名，可以设置在这里
 
