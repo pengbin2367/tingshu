@@ -4,6 +4,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "TingShu",
   description: "tingshu vite press docs",
+  base: "/tingshu/",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
